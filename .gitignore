@@ -1,0 +1,7 @@
+.direnv/
+
+# Tailwind generated
+web/static/css/output.css
+
+# Templ generated
+web/templates/**/*_templ.go
