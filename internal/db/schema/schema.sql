@@ -3,7 +3,8 @@ CREATE TABLE resources (
   title TEXT NOT NULL,
   source TEXT NOT NULL,
   source_type TEXT NOT NULL,
-  status_id INTEGER NOT NULL
+  status_id INTEGER NOT NULL,
+  FOREIGN KEY(status_id) REFERENCES statuses(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 CREATE TABLE statuses (

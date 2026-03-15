@@ -5,15 +5,15 @@ end_of_line = lf
 insert_final_newline = true
 
 
-[*.{nix,go,yaml,sql}]
+[*.{nix,go,yaml,sql,templ,toml}]
 charset = utf-8
 
-[*.go]
+[*.{go,templ}]
 indent_style = tab
 indent_size = 4
 
 
-[*.{nix,yaml,sql}]
+[*.{nix,yaml,sql,toml}]
 indent_style = space
 indent_size = 2
 

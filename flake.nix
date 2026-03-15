@@ -25,6 +25,9 @@
             air
             gnumake
             gcc
+
+            htmx-lsp
+            tailwindcss-language-server
           ];
         };
       }
