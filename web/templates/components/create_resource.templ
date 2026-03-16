@@ -1,0 +1,45 @@
+package components
+
+import "github.com/ellezio/itinera/internal/db"
+
+templ CreateResourceForm(tags []db.Tag) {
+	<form
+		id="create-resource-form"
+		class="text-fg-0"
+		hx-post="/resources"
+		hx-swap="none"
+		hx-on::after-request="if (event.detail.successful) {
+			this.reset()
+			document.activeElement.blur()
+		}"
+	>
+		<table class="border-separate border-spacing-y-1">
+			<tr>
+				<td><label for="resource-form-title" class="w-full pr-1">Title:</label> </td>
+				<td><input id="resource-form-title" name="title" class="bg-bg-1 border border-orange-0 outline-none"/> </td>
+			</tr>
+			<tr>
+				<td><label for="resource-form-source" class="w-full pr-1">Source:</label> </td>
+				<td><input id="resource-form-source" name="source" class="bg-bg-1 border border-orange-0 outline-none"/> </td>
+			</tr>
+			<tr>
+				<td><label for="resource-form-status" class="w-full pr-1">Status:</label> </td>
+				<td><input id="resource-form-status" name="status" class="bg-bg-1 border border-orange-0 outline-none"/> </td>
+			</tr>
+			<tr>
+				<td><label for="resource-form-tags" class="w-full pr-1">Tags:</label> </td>
+				<td>
+					<select multiple id="resource-form-tags" name="tags" class="bg-bg-1 border border-orange-0 outline-none">
+						for _, t := range tags {
+							<option value={ t.ID }>{ t.Name }</option>
+						}
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><input type="submit" value="Create" class="px-2 py-0.5 bg-orange-0 text-fg"/></td>
+			</tr>
+		</table>
+	</form>
+}

@@ -1,9 +1,11 @@
 -- name: GetResource :one
-SELECT * FROM resources
-WHERE id = ? LIMIT 1;
+SELECT sqlc.embed(r), sqlc.embed(s) FROM resources r
+JOIN statuses s ON r.status_id = s.id
+WHERE r.id = ? LIMIT 1;
 
 -- name: GetResources :many
-SELECT * FROM resources;
+SELECT sqlc.embed(r), sqlc.embed(s) FROM resources r
+JOIN statuses s ON r.status_id = s.id;
 
 -- name: CreateResource :one
 INSERT INTO resources (
@@ -25,3 +27,28 @@ RETURNING *;
 -- name: DeleteResource :exec
 DELETE FROM resources
 WHERE id = ?;
+
+-- name: GetStatuses :many
+SELECT * FROM statuses;
+
+-- name: GetResourceTags :many
+SELECT t.*
+FROM resource_tags rt
+JOIN tags t ON rt.tag_id = t.id
+WHERE rt.resource_id = ?;
+
+-- name: GetResourcesTags :many
+SELECT rt.resource_id, sqlc.embed(t)
+FROM resource_tags rt
+JOIN tags t ON rt.tag_id = t.id
+WHERE rt.resource_id IN (sqlc.slice('resources'));
+
+-- name: GetTags :many
+SELECT * FROM tags;
+
+-- name: SetTag :exec
+INSERT INTO resource_tags (
+  resource_id, tag_id
+) VALUES (
+  ?, ?
+);

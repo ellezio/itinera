@@ -1,0 +1,40 @@
+package components
+
+import "fmt"
+import "github.com/ellezio/itinera/internal/resource"
+import "strings"
+
+templ ResourceList(resources []resource.FullResource) {
+	<ul id="resource-list" class="text-fg-0" hx-swap-oob="outerHTML">
+		for _, resource := range resources {
+			@ResourceItem(resource)
+		}
+	</ul>
+}
+
+templ ResourceItem(item resource.FullResource) {
+	{{ id := fmt.Sprintf("resource-list-item-%d", item.Resource.ID) }}
+	{{
+		var tags strings.Builder
+		for i, t := range item.Tags {
+			if i > 0 {
+				tags.WriteString(", ")
+			}
+			tags.WriteString(t.Name)
+		}
+	}}
+	<li id={ id }>
+		<span>
+			ID: { item.Resource.ID },
+			Title: { item.Resource.Title },
+			Source: { item.Resource.Source },
+			Status: { item.Status.Name },
+			Tags: { tags.String() }
+		</span>
+		<button
+			class="border bg-red-1 border-red-0 text-fg-0 px-2 py-0.5"
+			hx-delete={ fmt.Sprintf("/resources/%d", item.Resource.ID) }
+			hx-target={ "#" + id }
+		>DELETE</button>
+	</li>
+}

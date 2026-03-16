@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+@source "../../templates/**/*.templ";
+
+@theme {
+  --color-bg-0: #282828;
+  --color-bg-1: #3c3836;
+
+  --color-fg-0: #ebdbb2;
+
+  --color-red-0: #cc241d;
+  --color-red-1: #fb4923;
+  --color-green: #98971a;
+  --color-yellow-0: #d79921;
+  --color-yellow-1: #fabd2f;
+  --color-blue: #458588;
+  --color-purple: #b16286;
+  --color-aqua: #689d6a;
+  --color-gray: #a89984;
+  --color-orange-0: #d65d0e;
+  --color-orange-1: #fe8019;
+}

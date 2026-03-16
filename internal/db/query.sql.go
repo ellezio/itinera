@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"strings"
 )
 
 const createResource = `-- name: CreateResource :one
@@ -54,42 +55,88 @@ func (q *Queries) DeleteResource(ctx context.Context, id int64) error {
 }
 
 const getResource = `-- name: GetResource :one
-SELECT id, title, source, source_type, status_id FROM resources
-WHERE id = ? LIMIT 1
+SELECT r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name FROM resources r
+JOIN statuses s ON r.status_id = s.id
+WHERE r.id = ? LIMIT 1
 `
 
-func (q *Queries) GetResource(ctx context.Context, id int64) (Resource, error) {
+type GetResourceRow struct {
+	Resource Resource
+	Status   Status
+}
+
+func (q *Queries) GetResource(ctx context.Context, id int64) (GetResourceRow, error) {
 	row := q.db.QueryRowContext(ctx, getResource, id)
-	var i Resource
+	var i GetResourceRow
 	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Source,
-		&i.SourceType,
-		&i.StatusID,
+		&i.Resource.ID,
+		&i.Resource.Title,
+		&i.Resource.Source,
+		&i.Resource.SourceType,
+		&i.Resource.StatusID,
+		&i.Status.ID,
+		&i.Status.Name,
 	)
 	return i, err
 }
 
-const getResources = `-- name: GetResources :many
-SELECT id, title, source, source_type, status_id FROM resources
+const getResourceTags = `-- name: GetResourceTags :many
+SELECT t.id, t.name
+FROM resource_tags rt
+JOIN tags t ON rt.tag_id = t.id
+WHERE rt.resource_id = ?
 `
 
-func (q *Queries) GetResources(ctx context.Context) ([]Resource, error) {
+func (q *Queries) GetResourceTags(ctx context.Context, resourceID int64) ([]Tag, error) {
+	rows, err := q.db.QueryContext(ctx, getResourceTags, resourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tag
+	for rows.Next() {
+		var i Tag
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getResources = `-- name: GetResources :many
+SELECT r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name FROM resources r
+JOIN statuses s ON r.status_id = s.id
+`
+
+type GetResourcesRow struct {
+	Resource Resource
+	Status   Status
+}
+
+func (q *Queries) GetResources(ctx context.Context) ([]GetResourcesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getResources)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Resource
+	var items []GetResourcesRow
 	for rows.Next() {
-		var i Resource
+		var i GetResourcesRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Source,
-			&i.SourceType,
-			&i.StatusID,
+			&i.Resource.ID,
+			&i.Resource.Title,
+			&i.Resource.Source,
+			&i.Resource.SourceType,
+			&i.Resource.StatusID,
+			&i.Status.ID,
+			&i.Status.Name,
 		); err != nil {
 			return nil, err
 		}
@@ -102,6 +149,123 @@ func (q *Queries) GetResources(ctx context.Context) ([]Resource, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getResourcesTags = `-- name: GetResourcesTags :many
+SELECT rt.resource_id, t.id, t.name
+FROM resource_tags rt
+JOIN tags t ON rt.tag_id = t.id
+WHERE rt.resource_id IN (/*SLICE:resources*/?)
+`
+
+type GetResourcesTagsRow struct {
+	ResourceID int64
+	Tag        Tag
+}
+
+func (q *Queries) GetResourcesTags(ctx context.Context, resources []int64) ([]GetResourcesTagsRow, error) {
+	query := getResourcesTags
+	var queryParams []interface{}
+	if len(resources) > 0 {
+		for _, v := range resources {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:resources*/?", strings.Repeat(",?", len(resources))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:resources*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetResourcesTagsRow
+	for rows.Next() {
+		var i GetResourcesTagsRow
+		if err := rows.Scan(&i.ResourceID, &i.Tag.ID, &i.Tag.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStatuses = `-- name: GetStatuses :many
+SELECT id, name FROM statuses
+`
+
+func (q *Queries) GetStatuses(ctx context.Context) ([]Status, error) {
+	rows, err := q.db.QueryContext(ctx, getStatuses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Status
+	for rows.Next() {
+		var i Status
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTags = `-- name: GetTags :many
+SELECT id, name FROM tags
+`
+
+func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
+	rows, err := q.db.QueryContext(ctx, getTags)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tag
+	for rows.Next() {
+		var i Tag
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const setTag = `-- name: SetTag :exec
+INSERT INTO resource_tags (
+  resource_id, tag_id
+) VALUES (
+  ?, ?
+)
+`
+
+type SetTagParams struct {
+	ResourceID int64
+	TagID      int64
+}
+
+func (q *Queries) SetTag(ctx context.Context, arg SetTagParams) error {
+	_, err := q.db.ExecContext(ctx, setTag, arg.ResourceID, arg.TagID)
+	return err
 }
 
 const updateResource = `-- name: UpdateResource :one

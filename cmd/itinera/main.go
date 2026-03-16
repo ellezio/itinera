@@ -1,16 +1,17 @@
 package main
 
 import (
-	"context"
 	"database/sql"
+	_ "embed"
 	"flag"
 	"fmt"
-	"io"
+	"log"
 	"net/http"
+	"os"
 
-	"github.com/a-h/templ"
 	"github.com/ellezio/itinera/internal/db"
-	"github.com/ellezio/itinera/web/templates/layout"
+	"github.com/ellezio/itinera/internal/handler"
+	"github.com/ellezio/itinera/internal/resource"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -21,24 +22,35 @@ func main() {
 
 	sqldb, err := sql.Open("sqlite3", *dsn+"?_fk=on")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	_ = db.New(sqldb)
+	ddl, _ := os.ReadFile("internal/db/schema/schema.sql")
+	if _, err := sqldb.Exec(string(ddl)); err != nil {
+		log.Fatal(err)
+	}
+
+	dml := `
+	INSERT INTO statuses VALUES (1, 'pending'), (2, 'inprogress'), (3, 'done');
+	INSERT INTO tags VALUES (1, 'go'), (2, 'rust'), (3, 'c');
+	`
+	if _, err := sqldb.Exec(dml); err != nil {
+		log.Fatal(err)
+	}
+
+	queries := db.New(sqldb)
+
+	resourceService := resource.NewResourceService(queries)
+	resourceHandler := handler.NewResourceHandler(resourceService)
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		contents := templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
-			_, err := io.WriteString(w, "<h1>Hello world</h1>")
-			return err
-		})
-		ctx := templ.WithChildren(r.Context(), contents)
-		layout.Base("Hello world").Render(ctx, w)
-	})
+	mux.HandleFunc("GET /", resourceHandler.Page)
+	mux.HandleFunc("POST /resources", resourceHandler.Create)
+	mux.HandleFunc("DELETE /resources/{id}", resourceHandler.Delete)
 
 	fmt.Printf("listening on %s\n", *port)
 	if err := http.ListenAndServe(":"+*port, mux); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 }
