@@ -3,16 +3,17 @@ package components
 import "fmt"
 import "github.com/ellezio/itinera/internal/resource"
 import "strings"
+import "github.com/ellezio/itinera/internal/db"
 
-templ ResourceList(resources []resource.FullResource) {
+templ ResourceList(resources []resource.FullResource, statuses []db.Status) {
 	<ul id="resource-list" class="text-fg-0" hx-swap-oob="outerHTML">
 		for _, resource := range resources {
-			@ResourceItem(resource)
+			@ResourceItem(resource, statuses)
 		}
 	</ul>
 }
 
-templ ResourceItem(item resource.FullResource) {
+templ ResourceItem(item resource.FullResource, statuses []db.Status) {
 	{{ id := fmt.Sprintf("resource-list-item-%d", item.Resource.ID) }}
 	{{
 		var tags strings.Builder
@@ -28,9 +29,18 @@ templ ResourceItem(item resource.FullResource) {
 			ID: { item.Resource.ID },
 			Title: { item.Resource.Title },
 			Source: { item.Resource.Source },
-			Status: { item.Status.Name },
 			Tags: { tags.String() }
 		</span>
+		<select hx-trigger="change" name="status" hx-post={ fmt.Sprintf("/resources/%d/status", item.Resource.ID) } class="bg-bg-1 border border-orange-0 outline-none">
+			for _, s := range statuses {
+				<option
+					value={ s.ID }
+					if s.ID == item.Status.ID {
+						selected
+					}
+				>{ s.Name }</option>
+			}
+		</select>
 		<button
 			class="border bg-red-1 border-red-0 text-fg-0 px-2 py-0.5"
 			hx-delete={ fmt.Sprintf("/resources/%d", item.Resource.ID) }

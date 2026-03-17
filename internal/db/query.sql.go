@@ -250,6 +250,22 @@ func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
 	return items, nil
 }
 
+const setStatus = `-- name: SetStatus :exec
+UPDATE resources
+SET status_id = ?
+WHERE id = ?
+`
+
+type SetStatusParams struct {
+	StatusID int64
+	ID       int64
+}
+
+func (q *Queries) SetStatus(ctx context.Context, arg SetStatusParams) error {
+	_, err := q.db.ExecContext(ctx, setStatus, arg.StatusID, arg.ID)
+	return err
+}
+
 const setTag = `-- name: SetTag :exec
 INSERT INTO resource_tags (
   resource_id, tag_id

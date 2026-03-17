@@ -5,9 +5,9 @@ import "github.com/ellezio/itinera/web/templates/components"
 import "github.com/ellezio/itinera/internal/resource"
 import "github.com/ellezio/itinera/internal/db"
 
-templ Resources(resources []resource.FullResource, tags []db.Tag) {
+templ Resources(resources []resource.FullResource, tags []db.Tag, statuses []db.Status) {
 	@layouts.Base("Resources page") {
-		@components.CreateResourceForm(tags)
-		@components.ResourceList(resources)
+		@components.CreateResourceForm(tags, statuses)
+		@components.ResourceList(resources, statuses)
 	}
 }

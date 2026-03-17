@@ -52,3 +52,8 @@ INSERT INTO resource_tags (
 ) VALUES (
   ?, ?
 );
+
+-- name: SetStatus :exec
+UPDATE resources
+SET status_id = ?
+WHERE id = ?;

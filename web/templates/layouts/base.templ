@@ -12,7 +12,22 @@ templ Base(title string) {
 			<script type="module" src="/static/js/hyperscript.min.js"></script>
 		</head>
 		<body class="bg-bg-0">
-			{ children... }
+			@Nav()
+			@Content() {
+				{ children... }
+			}
 		</body>
 	</html>
+}
+
+templ Nav() {
+	<nav>
+		<a href="/resources" class="text-fg-0">Resources</a>
+	</nav>
+}
+
+templ Content() {
+	<div id="page-content">
+		{ children... }
+	</div>
 }

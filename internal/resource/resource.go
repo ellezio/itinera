@@ -77,3 +77,11 @@ func (rs *ResourceService) Delete(id int64) error {
 func (rs *ResourceService) GetTags() ([]db.Tag, error) {
 	return rs.store.GetTags(context.Background())
 }
+
+func (rs *ResourceService) GetStatuses() ([]db.Status, error) {
+	return rs.store.GetStatuses(context.Background())
+}
+
+func (rs *ResourceService) SetStatus(resourcesID int64, statusID int64) error {
+	return rs.store.SetStatus(context.Background(), db.SetStatusParams{ID: resourcesID, StatusID: statusID})
+}

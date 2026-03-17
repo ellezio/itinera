@@ -33,7 +33,14 @@ func (rh *ResourceHandler) Page(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pages.Resources(resources, tags).Render(r.Context(), w)
+	statuses, err := rh.resources.GetStatuses()
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	pages.Resources(resources, tags, statuses).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -69,16 +76,39 @@ func (rh *ResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	components.ResourceList(resources).Render(r.Context(), w)
+	statuses, err := rh.resources.GetStatuses()
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	components.ResourceList(resources, statuses).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-
 	rid, _ := strconv.ParseInt(id, 10, 64)
+
 	if err := rh.resources.Delete(rid); err != nil {
 		slog.Error(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (rh *ResourceHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	rid, _ := strconv.ParseInt(id, 10, 64)
+
+	status := r.FormValue("status")
+	statusID, _ := strconv.ParseInt(status, 10, 64)
+
+	if err := rh.resources.SetStatus(rid, statusID); err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

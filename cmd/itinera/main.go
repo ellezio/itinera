@@ -46,8 +46,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 	mux.HandleFunc("GET /", resourceHandler.Page)
+	mux.HandleFunc("GET /resources", resourceHandler.Page)
 	mux.HandleFunc("POST /resources", resourceHandler.Create)
 	mux.HandleFunc("DELETE /resources/{id}", resourceHandler.Delete)
+	mux.HandleFunc("POST /resources/{id}/status", resourceHandler.ChangeStatus)
 
 	fmt.Printf("listening on %s\n", *port)
 	if err := http.ListenAndServe(":"+*port, mux); err != nil {

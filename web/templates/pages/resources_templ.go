@@ -13,7 +13,7 @@ import "github.com/ellezio/itinera/web/templates/components"
 import "github.com/ellezio/itinera/internal/resource"
 import "github.com/ellezio/itinera/internal/db"
 
-func Resources(resources []resource.FullResource, tags []db.Tag) templ.Component {
+func Resources(resources []resource.FullResource, tags []db.Tag, statuses []db.Status) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -46,7 +46,7 @@ func Resources(resources []resource.FullResource, tags []db.Tag) templ.Component
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = components.CreateResourceForm(tags).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.CreateResourceForm(tags, statuses).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -54,7 +54,7 @@ func Resources(resources []resource.FullResource, tags []db.Tag) templ.Component
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.ResourceList(resources).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.ResourceList(resources, statuses).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
