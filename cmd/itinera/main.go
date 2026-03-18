@@ -50,6 +50,8 @@ func main() {
 	mux.HandleFunc("POST /resources", resourceHandler.Create)
 	mux.HandleFunc("DELETE /resources/{id}", resourceHandler.Delete)
 	mux.HandleFunc("POST /resources/{id}/status", resourceHandler.ChangeStatus)
+	mux.HandleFunc("GET /resources/{id}/edit", resourceHandler.EditPage)
+	mux.HandleFunc("POST /resources/{id}", resourceHandler.Edit)
 
 	fmt.Printf("listening on %s\n", *port)
 	if err := http.ListenAndServe(":"+*port, mux); err != nil {

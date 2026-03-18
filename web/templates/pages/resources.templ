@@ -7,7 +7,13 @@ import "github.com/ellezio/itinera/internal/db"
 
 templ Resources(resources []resource.FullResource, tags []db.Tag, statuses []db.Status) {
 	@layouts.Base("Resources page") {
-		@components.CreateResourceForm(tags, statuses)
+		@components.CreateResourceForm(nil, tags, statuses)
 		@components.ResourceList(resources, statuses)
+	}
+}
+
+templ ResourceEdit(resource resource.FullResource, tags []db.Tag, statuses []db.Status) {
+	@layouts.Base("Resource edit page") {
+		@components.CreateResourceForm(&resource, tags, statuses)
 	}
 }

@@ -57,3 +57,7 @@ INSERT INTO resource_tags (
 UPDATE resources
 SET status_id = ?
 WHERE id = ?;
+
+-- name: ClearTags :exec
+DELETE FROM resource_tags
+WHERE resource_id = ?;

@@ -85,3 +85,46 @@ func (rs *ResourceService) GetStatuses() ([]db.Status, error) {
 func (rs *ResourceService) SetStatus(resourcesID int64, statusID int64) error {
 	return rs.store.SetStatus(context.Background(), db.SetStatusParams{ID: resourcesID, StatusID: statusID})
 }
+
+func (rs *ResourceService) Edit(id int64, title, source string, status int64, tags []int64) error {
+	ctx := context.Background()
+
+	resource, err := rs.store.UpdateResource(ctx, db.UpdateResourceParams{
+		ID:         id,
+		Title:      title,
+		Source:     source,
+		SourceType: "http",
+		StatusID:   status,
+	})
+
+	_ = rs.store.ClearTags(ctx, id)
+	for _, t := range tags {
+		_ = rs.store.SetTag(ctx, db.SetTagParams{
+			ResourceID: resource.ID,
+			TagID:      t,
+		})
+	}
+
+	return err
+}
+
+func (rs *ResourceService) GetResource(id int64) (FullResource, error) {
+	ctx := context.Background()
+	resourceRow, err := rs.store.GetResource(ctx, id)
+	if err != nil {
+		return FullResource{}, err
+	}
+
+	tags, err := rs.store.GetResourceTags(ctx, id)
+	if err != nil {
+		return FullResource{}, err
+	}
+
+	resource := FullResource{
+		Resource: resourceRow.Resource,
+		Status:   resourceRow.Status,
+		Tags:     tags,
+	}
+
+	return resource, nil
+}

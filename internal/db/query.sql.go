@@ -10,6 +10,16 @@ import (
 	"strings"
 )
 
+const clearTags = `-- name: ClearTags :exec
+DELETE FROM resource_tags
+WHERE resource_id = ?
+`
+
+func (q *Queries) ClearTags(ctx context.Context, resourceID int64) error {
+	_, err := q.db.ExecContext(ctx, clearTags, resourceID)
+	return err
+}
+
 const createResource = `-- name: CreateResource :one
 INSERT INTO resources (
   title, source, source_type, status_id

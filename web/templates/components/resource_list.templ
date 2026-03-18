@@ -42,7 +42,11 @@ templ ResourceItem(item resource.FullResource, statuses []db.Status) {
 			}
 		</select>
 		<button
-			class="border bg-red-1 border-red-0 text-fg-0 px-2 py-0.5"
+			class="border bg-aqua-1 border-aqua-0 font-bold text-fg-0 px-2 py-0.5"
+			hx-get={ fmt.Sprintf("/resources/%d/edit", item.Resource.ID) }
+		>EDIT</button>
+		<button
+			class="border bg-red-1 border-red-0 font-bold text-fg-0 px-2 py-0.5"
 			hx-delete={ fmt.Sprintf("/resources/%d", item.Resource.ID) }
 			hx-target={ "#" + id }
 		>DELETE</button>
