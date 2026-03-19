@@ -1,3 +1,4 @@
 .direnv/
 tmp/
 bin/
+test.db
