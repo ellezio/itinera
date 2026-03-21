@@ -26,11 +26,13 @@ type ResourceTag struct {
 }
 
 type Status struct {
-	ID   int64
-	Name string
+	ID    int64
+	Name  string
+	Color string
 }
 
 type Tag struct {
-	ID   int64
-	Name string
+	ID    int64
+	Name  string
+	Color string
 }

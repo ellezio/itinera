@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @source "../../templates/**/*.templ";
+@source inline("{bg,text,border}-{bg,fg,red,green,yellow,blue,purple,aqua,gray,orange}-{0,0/10,1,2,3,4}");
 
 @theme {
   --color-bg-0: #282828;

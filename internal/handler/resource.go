@@ -13,6 +13,7 @@ import (
 	"github.com/ellezio/itinera/internal/resource"
 	"github.com/ellezio/itinera/web/templates/components"
 	"github.com/ellezio/itinera/web/templates/pages"
+	resourceView "github.com/ellezio/itinera/web/templates/resource"
 )
 
 type ResourceHandler struct {
@@ -45,7 +46,7 @@ func (rh *ResourceHandler) Page(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pages.Resources(resources, tags, statuses).Render(r.Context(), w)
+	resourceView.Page(resources, tags, statuses).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -74,21 +75,22 @@ func (rh *ResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resources, err := rh.resources.GetAll()
-	if err != nil {
-		slog.Error(err.Error())
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
+	// resources, err := rh.resources.GetAll()
+	// if err != nil {
+	// 	slog.Error(err.Error())
+	// 	http.Error(w, "", http.StatusInternalServerError)
+	// 	return
+	// }
+	//
+	// statuses, err := rh.resources.GetStatuses()
+	// if err != nil {
+	// 	slog.Error(err.Error())
+	// 	http.Error(w, "", http.StatusInternalServerError)
+	// 	return
+	// }
 
-	statuses, err := rh.resources.GetStatuses()
-	if err != nil {
-		slog.Error(err.Error())
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	components.ResourceList(resources, statuses).Render(r.Context(), w)
+	redirect(w, r, "/resources", http.StatusFound)
+	// components.ResourceList(resources, statuses).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -127,18 +129,6 @@ func (rh *ResourceHandler) EditPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resource, err := rh.resources.GetResource(rid)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			http.Redirect(w, r, "/resources", http.StatusFound)
-			return
-		}
-
-		slog.Error(err.Error())
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
 	tags, err := rh.resources.GetTags()
 	if err != nil {
 		slog.Error(err.Error())
@@ -147,7 +137,24 @@ func (rh *ResourceHandler) EditPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	statuses, err := rh.resources.GetStatuses()
+
 	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+	if rid == 0 {
+		pages.Resources(tags, statuses).Render(r.Context(), w)
+		return
+	}
+
+	resource, err := rh.resources.GetResource(rid)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Redirect(w, r, "/resources", http.StatusFound)
+			return
+		}
+
 		slog.Error(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
 		return

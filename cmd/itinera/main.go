@@ -31,8 +31,8 @@ func main() {
 	}
 
 	dml := `
-	INSERT OR IGNORE INTO statuses VALUES (1, 'pending'), (2, 'inprogress'), (3, 'done');
-	INSERT OR IGNORE INTO tags VALUES (1, 'go'), (2, 'rust'), (3, 'c');
+	INSERT OR IGNORE INTO statuses VALUES (1, 'pending', 'gray'), (2, 'inprogress', 'blue'), (3, 'done', 'green');
+	INSERT OR IGNORE INTO tags VALUES (1, 'go', 'blue'), (2, 'rust', 'orange'), (3, 'c', 'yellow');
 	`
 	if _, err := sqldb.Exec(dml); err != nil {
 		log.Fatal(err)

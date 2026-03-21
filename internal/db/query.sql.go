@@ -138,7 +138,7 @@ func (q *Queries) GetNotes(ctx context.Context, arg GetNotesParams) ([]Note, err
 }
 
 const getResource = `-- name: GetResource :one
-SELECT r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name FROM resources r
+SELECT r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name, s.color FROM resources r
 JOIN statuses s ON r.status_id = s.id
 WHERE r.id = ? LIMIT 1
 `
@@ -159,12 +159,13 @@ func (q *Queries) GetResource(ctx context.Context, id int64) (GetResourceRow, er
 		&i.Resource.StatusID,
 		&i.Status.ID,
 		&i.Status.Name,
+		&i.Status.Color,
 	)
 	return i, err
 }
 
 const getResourceTags = `-- name: GetResourceTags :many
-SELECT t.id, t.name
+SELECT t.id, t.name, t.color
 FROM resource_tags rt
 JOIN tags t ON rt.tag_id = t.id
 WHERE rt.resource_id = ?
@@ -179,7 +180,7 @@ func (q *Queries) GetResourceTags(ctx context.Context, resourceID int64) ([]Tag,
 	var items []Tag
 	for rows.Next() {
 		var i Tag
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name, &i.Color); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -194,7 +195,7 @@ func (q *Queries) GetResourceTags(ctx context.Context, resourceID int64) ([]Tag,
 }
 
 const getResources = `-- name: GetResources :many
-SELECT r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name FROM resources r
+SELECT r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name, s.color FROM resources r
 JOIN statuses s ON r.status_id = s.id
 `
 
@@ -220,6 +221,7 @@ func (q *Queries) GetResources(ctx context.Context) ([]GetResourcesRow, error) {
 			&i.Resource.StatusID,
 			&i.Status.ID,
 			&i.Status.Name,
+			&i.Status.Color,
 		); err != nil {
 			return nil, err
 		}
@@ -285,7 +287,7 @@ func (q *Queries) GetResourcesNotes(ctx context.Context, arg GetResourcesNotesPa
 }
 
 const getResourcesTags = `-- name: GetResourcesTags :many
-SELECT rt.resource_id, t.id, t.name
+SELECT rt.resource_id, t.id, t.name, t.color
 FROM resource_tags rt
 JOIN tags t ON rt.tag_id = t.id
 WHERE rt.resource_id IN (/*SLICE:resources*/?)
@@ -315,7 +317,12 @@ func (q *Queries) GetResourcesTags(ctx context.Context, resources []int64) ([]Ge
 	var items []GetResourcesTagsRow
 	for rows.Next() {
 		var i GetResourcesTagsRow
-		if err := rows.Scan(&i.ResourceID, &i.Tag.ID, &i.Tag.Name); err != nil {
+		if err := rows.Scan(
+			&i.ResourceID,
+			&i.Tag.ID,
+			&i.Tag.Name,
+			&i.Tag.Color,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -330,7 +337,7 @@ func (q *Queries) GetResourcesTags(ctx context.Context, resources []int64) ([]Ge
 }
 
 const getStatuses = `-- name: GetStatuses :many
-SELECT id, name FROM statuses
+SELECT id, name, color FROM statuses
 `
 
 func (q *Queries) GetStatuses(ctx context.Context) ([]Status, error) {
@@ -342,7 +349,7 @@ func (q *Queries) GetStatuses(ctx context.Context) ([]Status, error) {
 	var items []Status
 	for rows.Next() {
 		var i Status
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name, &i.Color); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -357,7 +364,7 @@ func (q *Queries) GetStatuses(ctx context.Context) ([]Status, error) {
 }
 
 const getTags = `-- name: GetTags :many
-SELECT id, name FROM tags
+SELECT id, name, color FROM tags
 `
 
 func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
@@ -369,7 +376,7 @@ func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
 	var items []Tag
 	for rows.Next() {
 		var i Tag
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name, &i.Color); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
