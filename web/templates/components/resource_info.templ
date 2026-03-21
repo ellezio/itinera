@@ -1,0 +1,91 @@
+package components
+
+import "github.com/ellezio/itinera/internal/resource"
+import "github.com/ellezio/itinera/internal/db"
+import "strings"
+import "fmt"
+
+templ ResourceInfo(rsrc resource.FullResource, tags []db.Tag, statuses []db.Status) {
+	{{
+		var tags strings.Builder
+		for i, t := range rsrc.Tags {
+			if i > 0 {
+				tags.WriteString(", ")
+			}
+			tags.WriteString(t.Name)
+		}
+	}}
+	<div class="mx-auto w-1/3 text-fg-0 flex gap-4 flex-col">
+		<h1 class="text-2xl font-bold text-center">{ rsrc.Resource.Title }</h1>
+		<hr class="text-yellow-0"/>
+		<a target="_blank" class="flex-1 wrap-anywhere text-yellow-1 underline font-bold" href={ rsrc.Resource.Source }>{ rsrc.Resource.Source }</a>
+		<hr class="text-yellow-0"/>
+		if rsrc.Tags != nil {
+			<div>{ tags.String() }</div>
+		}
+		<select hx-trigger="change" name="status" hx-post={ fmt.Sprintf("/resources/%d/status", rsrc.Resource.ID) } class="bg-bg-1 border border-orange-0 outline-none">
+			for _, s := range statuses {
+				<option
+					value={ s.ID }
+					if s.ID == rsrc.Status.ID {
+						selected
+					}
+				>{ s.Name }</option>
+			}
+		</select>
+		@NoteList(rsrc.Notes)
+		@AddNote(rsrc.Resource.ID)
+		<div class="flex">
+			<button
+				class="border bg-aqua-1 border-aqua-0 font-bold text-fg-0 px-2 py-0.5 flex-1"
+				hx-get={ fmt.Sprintf("/resources/%d/edit", rsrc.Resource.ID) }
+			>EDIT</button>
+			<button
+				class="border bg-red-1 border-red-0 font-bold text-fg-0 px-2 py-0.5 flex-1"
+				hx-delete={ fmt.Sprintf("/resources/%d", rsrc.Resource.ID) }
+				hx-swap="none"
+			>DELETE</button>
+		</div>
+	</div>
+}
+
+templ AddNote(resourceID int64) {
+	<button
+		class="border bg-blue-1 border-blue-0 font-bold text-fg-0 px-2 py-0.5 flex-1 text-sm"
+		hx-get={ fmt.Sprintf("/resources/%d/notes/0/edit", resourceID) }
+		hx-swap="none"
+	>+ add note</button>
+}
+
+templ NoteList(notes []db.Note) {
+	<ul id="note-list" hx-swap-oob="beforeend">
+		for _, n := range notes {
+			@NoteListItem(n)
+		}
+	</ul>
+}
+
+templ NoteListItem(note_ db.Note) {
+	<li>
+		@Note(note_)
+	</li>
+}
+
+templ Note(note_ db.Note) {
+	<form class="flex flex-col gap-0.5" hx-post={ fmt.Sprintf("/resources/%d/notes/%d", note_.EntityID, note_.ID) } hx-swap="none">
+		<input name="title" placeholder="title" class="bg-bg-1" value={ note_.Title }/>
+		<textarea name="content" placeholder="content of note" class="bg-bg-1">{ note_.Content }</textarea>
+		<div class="flex">
+			<input
+				type="submit"
+				class="border bg-aqua-1 border-aqua-0 font-bold text-fg-0 px-2 py-0.5 flex-1 text-sm"
+				value="Save"
+			/>
+			<input
+				type="button"
+				class="border bg-red-1 border-red-0 font-bold text-fg-0 px-2 py-0.5 flex-1 text-sm"
+				value="Cancel"
+			/>
+		</div>
+	</form>
+}

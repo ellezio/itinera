@@ -20,6 +20,40 @@ func (q *Queries) ClearTags(ctx context.Context, resourceID int64) error {
 	return err
 }
 
+const createNote = `-- name: CreateNote :one
+INSERT INTO notes (
+  title, content, entity_id, entity_type
+) VALUES (
+  ?, ?, ?, ?
+)
+RETURNING id, title, content, entity_id, entity_type
+`
+
+type CreateNoteParams struct {
+	Title      string
+	Content    string
+	EntityID   int64
+	EntityType string
+}
+
+func (q *Queries) CreateNote(ctx context.Context, arg CreateNoteParams) (Note, error) {
+	row := q.db.QueryRowContext(ctx, createNote,
+		arg.Title,
+		arg.Content,
+		arg.EntityID,
+		arg.EntityType,
+	)
+	var i Note
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Content,
+		&i.EntityID,
+		&i.EntityType,
+	)
+	return i, err
+}
+
 const createResource = `-- name: CreateResource :one
 INSERT INTO resources (
   title, source, source_type, status_id
@@ -62,6 +96,45 @@ WHERE id = ?
 func (q *Queries) DeleteResource(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteResource, id)
 	return err
+}
+
+const getNotes = `-- name: GetNotes :many
+SELECT id, title, content, entity_id, entity_type FROM notes
+WHERE entity_id=? AND entity_type=?
+`
+
+type GetNotesParams struct {
+	EntityID   int64
+	EntityType string
+}
+
+func (q *Queries) GetNotes(ctx context.Context, arg GetNotesParams) ([]Note, error) {
+	rows, err := q.db.QueryContext(ctx, getNotes, arg.EntityID, arg.EntityType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Note
+	for rows.Next() {
+		var i Note
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Content,
+			&i.EntityID,
+			&i.EntityType,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getResource = `-- name: GetResource :one
@@ -147,6 +220,56 @@ func (q *Queries) GetResources(ctx context.Context) ([]GetResourcesRow, error) {
 			&i.Resource.StatusID,
 			&i.Status.ID,
 			&i.Status.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getResourcesNotes = `-- name: GetResourcesNotes :many
+SELECT id, title, content, entity_id, entity_type FROM notes
+WHERE entity_id IN (/*SLICE:resources*/?) AND entity_type=?
+`
+
+type GetResourcesNotesParams struct {
+	Resources  []int64
+	EntityType string
+}
+
+func (q *Queries) GetResourcesNotes(ctx context.Context, arg GetResourcesNotesParams) ([]Note, error) {
+	query := getResourcesNotes
+	var queryParams []interface{}
+	if len(arg.Resources) > 0 {
+		for _, v := range arg.Resources {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:resources*/?", strings.Repeat(",?", len(arg.Resources))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:resources*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.EntityType)
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Note
+	for rows.Next() {
+		var i Note
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Content,
+			&i.EntityID,
+			&i.EntityType,
 		); err != nil {
 			return nil, err
 		}

@@ -13,7 +13,13 @@ templ Resources(resources []resource.FullResource, tags []db.Tag, statuses []db.
 }
 
 templ ResourceEdit(resource resource.FullResource, tags []db.Tag, statuses []db.Status) {
-	@layouts.Base("Resource edit page") {
+	@layouts.Base("Resource edit - " + resource.Resource.Title) {
 		@components.CreateResourceForm(&resource, tags, statuses)
+	}
+}
+
+templ Resource(resource resource.FullResource, tags []db.Tag, statuses []db.Status) {
+	@layouts.Base("Resource - " + resource.Resource.Title) {
+		@components.ResourceInfo(resource, tags, statuses)
 	}
 }

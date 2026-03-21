@@ -12,7 +12,7 @@ import "github.com/ellezio/itinera/internal/db"
 import "fmt"
 import "github.com/ellezio/itinera/internal/resource"
 
-func CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuses []db.Status) templ.Component {
+func CreateResourceForm(rsrc *resource.FullResource, tags []db.Tag, statuses []db.Status) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -33,7 +33,7 @@ func CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuses
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		isEdit := resource != nil
+		isEdit := rsrc != nil
 		submitValue := "Create"
 		if isEdit {
 			submitValue = "Save"
@@ -48,9 +48,9 @@ func CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuses
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var2 string
-			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/resources/%d", resource.Resource.ID))
+			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/resources/%d", rsrc.Resource.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/components/create_resource.templ`, Line: 19, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/components/create_resource.templ`, Line: 19, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -76,9 +76,9 @@ func CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuses
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(resource.Resource.Title)
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(rsrc.Resource.Title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/components/create_resource.templ`, Line: 38, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/components/create_resource.templ`, Line: 38, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -99,9 +99,9 @@ func CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuses
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(resource.Resource.Source)
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(rsrc.Resource.Source)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/components/create_resource.templ`, Line: 51, Col: 39}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/components/create_resource.templ`, Line: 51, Col: 35}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -134,7 +134,7 @@ func CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuses
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if isEdit && s.ID == resource.Status.ID {
+			if isEdit && s.ID == rsrc.Status.ID {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " selected")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -165,7 +165,7 @@ func CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuses
 		for _, t := range tags {
 			isSelected := false
 			if isEdit {
-				for _, rt := range resource.Tags {
+				for _, rt := range rsrc.Tags {
 					if rt.ID == t.ID {
 						isSelected = true
 						break

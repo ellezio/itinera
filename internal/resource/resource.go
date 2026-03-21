@@ -38,6 +38,7 @@ type FullResource struct {
 	Resource db.Resource
 	Status   db.Status
 	Tags     []db.Tag
+	Notes    []db.Note
 }
 
 func (rs *ResourceService) GetAll() ([]FullResource, error) {
@@ -54,9 +55,22 @@ func (rs *ResourceService) GetAll() ([]FullResource, error) {
 	}
 
 	dbTags, err := rs.store.GetResourcesTags(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
 	tags := make(map[int64][]db.Tag)
 	for _, t := range dbTags {
 		tags[t.ResourceID] = append(tags[t.ResourceID], t.Tag)
+	}
+
+	dbNotes, err := rs.store.GetResourcesNotes(ctx, db.GetResourcesNotesParams{Resources: ids, EntityType: "resource"})
+	if err != nil {
+		return nil, err
+	}
+	notes := make(map[int64][]db.Note)
+	for _, n := range dbNotes {
+		notes[n.EntityID] = append(notes[n.EntityID], n)
 	}
 
 	resources := make([]FullResource, len(dbResources))
@@ -65,6 +79,7 @@ func (rs *ResourceService) GetAll() ([]FullResource, error) {
 			Resource: r.Resource,
 			Status:   r.Status,
 			Tags:     tags[r.Resource.ID],
+			Notes:    notes[r.Resource.ID],
 		}
 	}
 	return resources, nil
@@ -120,11 +135,26 @@ func (rs *ResourceService) GetResource(id int64) (FullResource, error) {
 		return FullResource{}, err
 	}
 
+	notes, err := rs.store.GetNotes(ctx, db.GetNotesParams{EntityID: id, EntityType: "resource"})
+
 	resource := FullResource{
 		Resource: resourceRow.Resource,
 		Status:   resourceRow.Status,
 		Tags:     tags,
+		Notes:    notes,
 	}
 
 	return resource, nil
+}
+
+func (rs *ResourceService) AddNote(title, content string, resourceID int64) (db.Note, error) {
+	return rs.store.CreateNote(
+		context.Background(),
+		db.CreateNoteParams{
+			Title:      title,
+			Content:    content,
+			EntityID:   resourceID,
+			EntityType: "resource",
+		},
+	)
 }

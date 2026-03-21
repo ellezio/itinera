@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/ellezio/itinera/internal/db"
 	"github.com/ellezio/itinera/internal/resource"
 	"github.com/ellezio/itinera/web/templates/components"
 	"github.com/ellezio/itinera/web/templates/pages"
@@ -185,4 +187,51 @@ func (rh *ResourceHandler) Edit(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Hx-Redirect", "/resources")
 	w.WriteHeader(http.StatusFound)
+}
+
+func (rh *ResourceHandler) Info(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	rid, _ := strconv.ParseInt(id, 10, 64)
+
+	rsrc, err := rh.resources.GetResource(rid)
+	if err != nil {
+		slog.Error(err.Error())
+		redirect(w, r, "/resources", http.StatusFound)
+		return
+	}
+
+	tags, err := rh.resources.GetTags()
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	statuses, err := rh.resources.GetStatuses()
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+	pages.Resource(rsrc, tags, statuses).Render(context.Background(), w)
+}
+
+func (rh *ResourceHandler) ResourceNoteEditBox(w http.ResponseWriter, r *http.Request) {
+	resourceID_str := r.PathValue("resource_id")
+	resourceID, _ := strconv.ParseInt(resourceID_str, 10, 64)
+
+	notes := []db.Note{{EntityType: "resource", EntityID: resourceID}}
+	components.NoteList(notes).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) EditResourceNote(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	resourceID_str := r.PathValue("resource_id")
+	resourceID, _ := strconv.ParseInt(resourceID_str, 10, 64)
+
+	title := r.FormValue("title")
+	content := r.FormValue("content")
+
+	_, _ = rh.resources.AddNote(title, content, resourceID)
 }

@@ -4,9 +4,9 @@ import "github.com/ellezio/itinera/internal/db"
 import "fmt"
 import "github.com/ellezio/itinera/internal/resource"
 
-templ CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuses []db.Status) {
+templ CreateResourceForm(rsrc *resource.FullResource, tags []db.Tag, statuses []db.Status) {
 	{{
-		isEdit := resource != nil
+		isEdit := rsrc != nil
 		submitValue := "Create"
 		if isEdit {
 			submitValue = "Save"
@@ -16,7 +16,7 @@ templ CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuse
 		id="create-resource-form"
 		class="text-fg-0"
 		if isEdit {
-			hx-post={ fmt.Sprintf("/resources/%d", resource.Resource.ID) }
+			hx-post={ fmt.Sprintf("/resources/%d", rsrc.Resource.ID) }
 		} else {
 			hx-post="/resources"
 		}
@@ -35,7 +35,7 @@ templ CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuse
 						name="title"
 						class="bg-bg-1 border border-orange-0 outline-none"
 						if isEdit {
-							value={ resource.Resource.Title }
+							value={ rsrc.Resource.Title }
 						}
 					/>
 				</td>
@@ -48,7 +48,7 @@ templ CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuse
 						name="source"
 						class="bg-bg-1 border border-orange-0 outline-none"
 						if isEdit {
-							value={ resource.Resource.Source }
+							value={ rsrc.Resource.Source }
 						}
 					/>
 				</td>
@@ -60,7 +60,7 @@ templ CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuse
 						for _, s := range statuses {
 							<option
 								value={ s.ID }
-								if isEdit && s.ID == resource.Status.ID {
+								if isEdit && s.ID == rsrc.Status.ID {
 									selected
 								}
 							>{ s.Name }</option>
@@ -76,7 +76,7 @@ templ CreateResourceForm(resource *resource.FullResource, tags []db.Tag, statuse
 							{{
 								isSelected := false
 								if isEdit {
-									for _, rt := range resource.Tags {
+									for _, rt := range rsrc.Tags {
 										if rt.ID == t.ID {
 											isSelected = true
 											break

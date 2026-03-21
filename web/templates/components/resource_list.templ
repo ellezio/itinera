@@ -13,46 +13,6 @@ templ ResourceList(rsrcs []resource.FullResource, statuses []db.Status) {
 	</div>
 }
 
-templ ResourceItem(item resource.FullResource, statuses []db.Status) {
-	{{
-		id := fmt.Sprintf("resource-list-item-%d", item.Resource.ID)
-		var tags strings.Builder
-		for i, t := range item.Tags {
-			if i > 0 {
-				tags.WriteString(", ")
-			}
-			tags.WriteString(t.Name)
-		}
-	}}
-	<li id={ id }>
-		<span>
-			ID: { item.Resource.ID },
-			Title: { item.Resource.Title },
-			Source: { item.Resource.Source },
-			Tags: { tags.String() }
-		</span>
-		<select hx-trigger="change" name="status" hx-post={ fmt.Sprintf("/resources/%d/status", item.Resource.ID) } class="bg-bg-1 border border-orange-0 outline-none">
-			for _, s := range statuses {
-				<option
-					value={ s.ID }
-					if s.ID == item.Status.ID {
-						selected
-					}
-				>{ s.Name }</option>
-			}
-		</select>
-		<button
-			class="border bg-aqua-1 border-aqua-0 font-bold text-fg-0 px-2 py-0.5"
-			hx-get={ fmt.Sprintf("/resources/%d/edit", item.Resource.ID) }
-		>EDIT</button>
-		<button
-			class="border bg-red-1 border-red-0 font-bold text-fg-0 px-2 py-0.5"
-			hx-delete={ fmt.Sprintf("/resources/%d", item.Resource.ID) }
-			hx-target={ "#" + id }
-		>DELETE</button>
-	</li>
-}
-
 templ ResourceCard(rsrc resource.FullResource, statuses []db.Status) {
 	{{
 		cardID := fmt.Sprintf("resource-card-%d", rsrc.Resource.ID)
@@ -65,7 +25,7 @@ templ ResourceCard(rsrc resource.FullResource, statuses []db.Status) {
 		}
 	}}
 	<div id={ cardID } class="text-fg-0 border rounded-md border-yellow-1 bg-orange-0 p-1.5 flex gap-0.5 flex-col w-48 flex-1 sm:flex-none">
-		<h3 class="text-lg font-bold text-center">{ rsrc.Resource.Title }</h3>
+		<h3><a class="text-lg font-bold text-center cursor-pointer" href={ fmt.Sprintf("/resources/%d", rsrc.Resource.ID) }>{ rsrc.Resource.Title }</a> </h3>
 		<hr class="text-yellow-0"/>
 		<a target="_blank" class="flex-1 wrap-anywhere text-yellow-1 underline font-bold" href={ rsrc.Resource.Source }>{ rsrc.Resource.Source }</a>
 		<hr class="text-yellow-0"/>

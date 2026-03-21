@@ -61,3 +61,19 @@ WHERE id = ?;
 -- name: ClearTags :exec
 DELETE FROM resource_tags
 WHERE resource_id = ?;
+
+-- name: GetResourcesNotes :many
+SELECT * FROM notes
+WHERE entity_id IN (sqlc.slice('resources')) AND entity_type=?;
+
+-- name: GetNotes :many
+SELECT * FROM notes
+WHERE entity_id=? AND entity_type=?;
+
+-- name: CreateNote :one
+INSERT INTO notes (
+  title, content, entity_id, entity_type
+) VALUES (
+  ?, ?, ?, ?
+)
+RETURNING *;
