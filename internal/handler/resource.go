@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -220,7 +219,8 @@ func (rh *ResourceHandler) Info(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	pages.Resource(rsrc, tags, statuses).Render(context.Background(), w)
+	pages.Resource(rsrc, tags, statuses)
+	resourceView.ResourceInfoPane(rsrc).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) ResourceNoteEditBox(w http.ResponseWriter, r *http.Request) {

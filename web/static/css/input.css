@@ -33,3 +33,21 @@
   --color-orange-0: #d65d0e;
   --color-orange-1: #fe8019;
 }
+
+@layer utilities {
+  .scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: theme("colors.bg.2") theme("colors.bg.4");
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: theme("colors.bg.2");
+      border-radius: 9999px;
+    }
+    &::-webkit-scrollbar-track {
+      background: theme("colors.bg.4");
+    }
+  }
+}

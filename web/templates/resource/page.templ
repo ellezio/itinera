@@ -3,27 +3,71 @@ package resource
 import "github.com/ellezio/itinera/web/templates/layouts"
 import "github.com/ellezio/itinera/internal/resource"
 import "github.com/ellezio/itinera/internal/db"
+import "fmt"
 
 templ Page(rsrcs []resource.FullResource, tags []db.Tag, statuses []db.Status) {
 	@layouts.Base("Resources") {
-		<div class="text-fg-0 h-screen flex flex-col">
+		<div class="text-fg-1 h-screen flex flex-col">
 			@TopNav()
-			<div class="flex h-full">
+			<div class="flex flex-1 overflow-hidden">
 				@SideNav(tags, statuses)
-				<div id="page-content" class="flex-1 p-4">
-					<div>
-						<button
-							class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer"
-							hx-get="/resources/0/edit"
-						>+ Add</button>
+				<div id="pane-container" class="flex h-full flex-1">
+					<div id="page-content" class="p-4 flex-1 overflow-y-scroll scrollbar">
+						<div>
+							<button
+								class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer"
+								hx-get="/resources/0/edit"
+							>+ Add</button>
+						</div>
+						<div class="pt-4 flex flex-wrap gap-3 content-start">
+							for _, rsrc := range rsrcs {
+								@Card(rsrc)
+							}
+						</div>
 					</div>
-					<div class="pt-4 flex flex-wrap gap-3 content-start">
-						for _, rsrc := range rsrcs {
-							@Card(rsrc)
-						}
+					<div id="pane-divider" class="w-1.5 bg-bg-2 cursor-col-resize"></div>
+					<div id="pane">
+						<div id="resource-info-pane" hx-swap-oob="true" class="w-full h-full bg-bg-1 border-l-2 border-l-bg-2 pt-4 px-3 flex flex-col gap-4"></div>
 					</div>
 				</div>
 			</div>
+			<script>
+				const divider = document.getElementById('pane-divider');
+				const pane = document.getElementById('pane');
+				const container = document.getElementById('pane-container');
+
+				let dragging = false, startX = 0, startWidth = 0;
+
+				divider.addEventListener('mousedown', e => {
+					dragging = true;
+					startX = e.clientX;
+					startWidth = pane.offsetWidth;
+				});
+
+				function updatePaneWidth(e = null) {
+					const maxWidth = container.offsetWidth - divider.offsetWidth - 694;
+					const minWidth = 300;
+					let diff = e ? startX - e.clientX : 0;
+					const newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth + diff));
+					pane.style.width = newWidth + 'px';
+				}
+
+				document.addEventListener('mousemove', e => {
+					if (!dragging) return;
+					updatePaneWidth(e);
+					document.body.style.userSelect = 'none';
+				});
+
+				document.addEventListener('mouseup', () => {
+					dragging = false;
+					document.body.style.userSelect = '';
+				});
+
+				window.addEventListener('resize', () => {
+					updatePaneWidth();
+				});
+				updatePaneWidth();
+			</script>
 		</div>
 	}
 }
@@ -32,10 +76,10 @@ templ TopNav() {
 	<div id="top-nav" class="py-3 px-4 bg-bg-1 border-b-2 border-b-bg-2 flex gap-5 items-center">
 		<div class="tracking-wider">ITINERA</div>
 		<div class="flex gap-2">
-			<div class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer">resources</div>
-			<div class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer">collection</div>
-			<div class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer">notes</div>
-			<div class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer">tags</div>
+			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer bg-bg-2">resources</div>
+			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer">collection</div>
+			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer">notes</div>
+			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer">tags</div>
 		</div>
 	</div>
 }
@@ -68,19 +112,72 @@ templ ListItem(text, mark, color string, count int) {
 }
 
 templ Card(rsrc resource.FullResource) {
-	<div class="border border-bg-3 hover:border-bg-4 w-80 rounded-xl overflow-hidden h-fit">
-		<div class="h-24 bg-bg-2"></div>
+	<div
+		class="border border-bg-3 hover:border-bg-4 w-80 rounded-md overflow-hidden h-fit"
+		hx-get={ fmt.Sprintf("/resources/%d", rsrc.Resource.ID) }
+		hx-trigger="click"
+		hx-swap="none"
+	>
+		<div class="min-h-fit h-24 bg-bg-2"></div>
 		<div class="h-36 bg-bg-1 border-t border-t-bg-3 px-3 py-2 flex flex-col gap-2">
 			<div class="flex">
 				<div class="flex-1 text-sm">{ rsrc.Resource.Title }</div>
 				<div class={ "bg-" + rsrc.Status.Color + "-0/10 text-" + rsrc.Status.Color + "-1 px-2 rounded-md text-[10px] h-fit py-0.5" }>{ rsrc.Status.Name }</div>
 			</div>
-			<a class="text-bg-4 text-xs hover:underline" target="_blank" href={ rsrc.Resource.Source }>{ rsrc.Resource.Source }</a>
+			<div class="leading-none">
+				<a
+					class="text-blue-1 text-xs hover:underline"
+					target="_blank"
+					href={ rsrc.Resource.Source }
+					onclick="event.stopPropagation()"
+				>{ rsrc.Resource.Source }</a>
+			</div>
 			<div class="flex flex-wrap gap-1 mt-1">
 				for _, tag := range rsrc.Tags {
 					<div class={ "border border-" + tag.Color + "-1 text-" + tag.Color + "-1 bg-" + tag.Color + "-0/10 px-2 rounded-md text-xs" }>#{ tag.Name }</div>
 				}
 			</div>
+		</div>
+	</div>
+}
+
+templ ResourceInfoPane(rsrc resource.FullResource) {
+	<div id="resource-info-pane" hx-swap-oob="true" class="w-full h-full bg-bg-1 border-l-2 border-l-bg-2 py-4 px-3 flex flex-col gap-4 overflow-y-auto scrollbar">
+		<div class="flex gap-2 justify-end">
+			<button
+				class="px-4 py-2 rounded-xl border border-bg-4 hover:bg-bg-0 cursor-pointer text-fg-0"
+				hx-get={ fmt.Sprintf("/resources/%d/edit", rsrc.Resource.ID) }
+			>e</button>
+			<button class="px-4 py-2 rounded-xl border border-bg-4 hover:bg-bg-0 cursor-pointer text-fg-0">x</button>
+		</div>
+		<div class="min-h-fit h-24 bg-bg-2 rounded-md border border-bg-3 overflow-hidden"></div>
+		<div>
+			<div>{ rsrc.Resource.Title }</div>
+			<a class="text-blue-1 text-xs hover:underline" target="_blank" href={ rsrc.Resource.Source }>{ rsrc.Resource.Source }</a>
+		</div>
+		<div>
+			<div class="text-bg-4 text-sm tracking-wider">TAGS</div>
+			<div class="flex flex-wrap gap-1 mt-1">
+				for _, tag := range rsrc.Tags {
+					<div class={ "border border-" + tag.Color + "-1 text-" + tag.Color + "-1 bg-" + tag.Color + "-0/10 px-2 rounded-md text-xs" }>#{ tag.Name }</div>
+				}
+			</div>
+		</div>
+		<div class="w-full">
+			<div class="mb-2 text-bg-4 text-sm tracking-wider">NOTES</div>
+			<div id="note-list" class="flex flex-col gap-2 mb-4">
+				for _, n := range rsrc.Notes {
+					<div class="bg-bg-2 border-l-3 border-l-yellow-0 p-3 rounded-tr-sm rounded-br-sm">
+						<div class="text-sm font-semibold mb-1">{ n.Title }</div>
+						<div class="text-sm font-thin">{ n.Content }</div>
+					</div>
+				}
+			</div>
+			<button
+				class="text-fg-0 border border-bg-4 py-2 w-full rounded-md hover:bg-bg-0 cursor-pointer"
+				hx-get={ fmt.Sprintf("/resources/%d/notes/0/edit", rsrc.Resource.ID) }
+				hx-swap="none"
+			>+ add note</button>
 		</div>
 	</div>
 }
