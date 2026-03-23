@@ -10,7 +10,6 @@ import (
 
 	"github.com/ellezio/itinera/internal/db"
 	"github.com/ellezio/itinera/internal/resource"
-	"github.com/ellezio/itinera/web/templates/components"
 	"github.com/ellezio/itinera/web/templates/pages"
 	resourceView "github.com/ellezio/itinera/web/templates/resource"
 )
@@ -224,15 +223,44 @@ func (rh *ResourceHandler) Info(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rh *ResourceHandler) ResourceNoteEditBox(w http.ResponseWriter, r *http.Request) {
+	noteID_str := r.PathValue("note_id")
+	noteID, _ := strconv.ParseInt(noteID_str, 10, 64)
+
 	resourceID_str := r.PathValue("resource_id")
 	resourceID, _ := strconv.ParseInt(resourceID_str, 10, 64)
 
-	notes := []db.Note{{EntityType: "resource", EntityID: resourceID}}
-	components.NoteList(notes).Render(r.Context(), w)
+	note := db.Note{EntityType: "resource", EntityID: resourceID}
+	if noteID > 0 {
+		var err error
+		note, err = rh.resources.GetNote(noteID)
+		if err != nil {
+			slog.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	resourceView.Note(note, true).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) GetResourceNote(w http.ResponseWriter, r *http.Request) {
+	noteID_str := r.PathValue("note_id")
+	noteID, _ := strconv.ParseInt(noteID_str, 10, 64)
+
+	note, err := rh.resources.GetNote(noteID)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	resourceView.Note(note, false).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) EditResourceNote(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
+
+	noteID_str := r.PathValue("note_id")
+	noteID, _ := strconv.ParseInt(noteID_str, 10, 64)
 
 	resourceID_str := r.PathValue("resource_id")
 	resourceID, _ := strconv.ParseInt(resourceID_str, 10, 64)
@@ -240,5 +268,23 @@ func (rh *ResourceHandler) EditResourceNote(w http.ResponseWriter, r *http.Reque
 	title := r.FormValue("title")
 	content := r.FormValue("content")
 
-	_, _ = rh.resources.AddNote(title, content, resourceID)
+	var note db.Note
+	if noteID > 0 {
+		note, _ = rh.resources.UpdateNote(noteID, title, content)
+	} else {
+		note, _ = rh.resources.AddNote(title, content, resourceID)
+	}
+	resourceView.Note(note, false).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) DeleteResourceNote(w http.ResponseWriter, r *http.Request) {
+	noteID_str := r.PathValue("note_id")
+	noteID, _ := strconv.ParseInt(noteID_str, 10, 64)
+
+	err := rh.resources.DeleteNote(noteID)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

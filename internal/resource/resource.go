@@ -158,3 +158,22 @@ func (rs *ResourceService) AddNote(title, content string, resourceID int64) (db.
 		},
 	)
 }
+
+func (rs *ResourceService) UpdateNote(id int64, title, content string) (db.Note, error) {
+	return rs.store.UpdateNote(
+		context.Background(),
+		db.UpdateNoteParams{
+			ID:      id,
+			Title:   title,
+			Content: content,
+		},
+	)
+}
+
+func (rs *ResourceService) GetNote(id int64) (db.Note, error) {
+	return rs.store.GetNote(context.Background(), id)
+}
+
+func (rs *ResourceService) DeleteNote(id int64) error {
+	return rs.store.DeleteNote(context.Background(), id)
+}

@@ -88,6 +88,15 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 	return i, err
 }
 
+const deleteNote = `-- name: DeleteNote :exec
+DELETE FROM notes WHERE id=?
+`
+
+func (q *Queries) DeleteNote(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteNote, id)
+	return err
+}
+
 const deleteResource = `-- name: DeleteResource :exec
 DELETE FROM resources
 WHERE id = ?
@@ -96,6 +105,24 @@ WHERE id = ?
 func (q *Queries) DeleteResource(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteResource, id)
 	return err
+}
+
+const getNote = `-- name: GetNote :one
+SELECT id, title, content, entity_id, entity_type FROM notes
+WHERE id=? LIMIT 1
+`
+
+func (q *Queries) GetNote(ctx context.Context, id int64) (Note, error) {
+	row := q.db.QueryRowContext(ctx, getNote, id)
+	var i Note
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Content,
+		&i.EntityID,
+		&i.EntityType,
+	)
+	return i, err
 }
 
 const getNotes = `-- name: GetNotes :many
@@ -422,6 +449,33 @@ type SetTagParams struct {
 func (q *Queries) SetTag(ctx context.Context, arg SetTagParams) error {
 	_, err := q.db.ExecContext(ctx, setTag, arg.ResourceID, arg.TagID)
 	return err
+}
+
+const updateNote = `-- name: UpdateNote :one
+UPDATE notes SET 
+title=?,
+content=?
+WHERE id=?
+RETURNING id, title, content, entity_id, entity_type
+`
+
+type UpdateNoteParams struct {
+	Title   string
+	Content string
+	ID      int64
+}
+
+func (q *Queries) UpdateNote(ctx context.Context, arg UpdateNoteParams) (Note, error) {
+	row := q.db.QueryRowContext(ctx, updateNote, arg.Title, arg.Content, arg.ID)
+	var i Note
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Content,
+		&i.EntityID,
+		&i.EntityType,
+	)
+	return i, err
 }
 
 const updateResource = `-- name: UpdateResource :one

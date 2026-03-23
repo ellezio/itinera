@@ -167,17 +167,70 @@ templ ResourceInfoPane(rsrc resource.FullResource) {
 			<div class="mb-2 text-bg-4 text-sm tracking-wider">NOTES</div>
 			<div id="note-list" class="flex flex-col gap-2 mb-4">
 				for _, n := range rsrc.Notes {
-					<div class="bg-bg-2 border-l-3 border-l-yellow-0 p-3 rounded-tr-sm rounded-br-sm">
-						<div class="text-sm font-semibold mb-1">{ n.Title }</div>
-						<div class="text-sm font-thin">{ n.Content }</div>
-					</div>
+					@Note(n, false)
 				}
 			</div>
 			<button
 				class="text-fg-0 border border-bg-4 py-2 w-full rounded-md hover:bg-bg-0 cursor-pointer"
 				hx-get={ fmt.Sprintf("/resources/%d/notes/0/edit", rsrc.Resource.ID) }
-				hx-swap="none"
+				hx-swap="beforeend"
+				hx-target="#note-list"
 			>+ add note</button>
 		</div>
+	</div>
+}
+
+templ Note(note db.Note, edit bool) {
+	{{ elemID := fmt.Sprintf("note-%d", note.ID) }}
+	{{ noteExists := note.ID > 0 }}
+	<div
+		id={ elemID }
+		class="bg-bg-2 border-l-3 border-l-yellow-0 p-3 rounded-tr-sm rounded-br-sm"
+		if !edit {
+			hx-get={ fmt.Sprintf("/resources/%d/notes/%d/edit", note.EntityID, note.ID) }
+			hx-trigger="dblclick"
+			hx-swap="outerHTML"
+		}
+	>
+		if edit {
+			<form
+				class="flex flex-col gap-0.5"
+				hx-post={ fmt.Sprintf("/resources/%d/notes/%d", note.EntityID, note.ID) }
+				hx-target={ "#" + elemID }
+				hx-swap="outerHTML"
+			>
+				<input name="title" placeholder="title" class="bg-bg-1" value={ note.Title }/>
+				<textarea name="content" placeholder="content of note" class="bg-bg-1">{ note.Content }</textarea>
+				<div class="flex mt-1.5 gap-1">
+					<input
+						type="submit"
+						class="text-fg-0 bg-aqua-0/30 hover:bg-aqua-0/50 border border-aqua-1 rounded-sm flex-1 text-sm cursor-pointer"
+						value="Save"
+					/>
+					<input
+						type="button"
+						class="text-fg-0 bg-red-0/30 hover:bg-red-0/50 border border-red-1 rounded-sm flex-1 text-sm cursor-pointer"
+						value="Cancel"
+						if noteExists {
+							hx-get={ fmt.Sprintf("/resources/%d/notes/%d", note.EntityID, note.ID) }
+							hx-target={ "#" + elemID }
+							hx-swap="outerHTML"
+						} else {
+							onclick={ templ.JSUnsafeFuncCall("document.getElementById('" + elemID + "').remove()") }
+						}
+					/>
+				</div>
+			</form>
+		} else {
+			<div class="flex">
+				<div class="flex-1 text-sm font-semibold mb-1">{ note.Title }</div>
+				<button
+					class="text-red-1 bg-red-0/10 border border-red-1 rounded-sm px-2 cursor-pointer"
+					hx-delete={ fmt.Sprintf("/resources/%d/notes/%d", note.EntityID, note.ID) }
+					hx-target={ "#" + elemID }
+				>r</button>
+			</div>
+			<div class="text-sm font-thin">{ note.Content }</div>
+		}
 	</div>
 }

@@ -56,7 +56,9 @@ func main() {
 	mux.HandleFunc("POST /resources/{id}/status", resourceHandler.ChangeStatus)
 
 	mux.HandleFunc("GET /resources/{resource_id}/notes/{note_id}/edit", resourceHandler.ResourceNoteEditBox)
+	mux.HandleFunc("GET /resources/{resource_id}/notes/{note_id}", resourceHandler.GetResourceNote)
 	mux.HandleFunc("POST /resources/{resource_id}/notes/{note_id}", resourceHandler.EditResourceNote)
+	mux.HandleFunc("DELETE /resources/{resource_id}/notes/{note_id}", resourceHandler.DeleteResourceNote)
 
 	mux.HandleFunc("GET /resources/{id}", resourceHandler.Info)
 	mux.HandleFunc("POST /resources/{id}", resourceHandler.Edit)

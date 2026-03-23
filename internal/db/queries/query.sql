@@ -70,10 +70,24 @@ WHERE entity_id IN (sqlc.slice('resources')) AND entity_type=?;
 SELECT * FROM notes
 WHERE entity_id=? AND entity_type=?;
 
+-- name: GetNote :one
+SELECT * FROM notes
+WHERE id=? LIMIT 1;
+
 -- name: CreateNote :one
 INSERT INTO notes (
   title, content, entity_id, entity_type
 ) VALUES (
   ?, ?, ?, ?
 )
+RETURNING *;
+
+-- name: DeleteNote :exec
+DELETE FROM notes WHERE id=?;
+
+-- name: UpdateNote :one
+UPDATE notes SET 
+title=?,
+content=?
+WHERE id=?
 RETURNING *;
