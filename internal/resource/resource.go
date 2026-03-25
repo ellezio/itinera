@@ -14,7 +14,7 @@ func NewResourceService(queries *db.Queries) *ResourceService {
 	return &ResourceService{queries}
 }
 
-func (rs *ResourceService) Create(title, source string, status int64, tags []int64) error {
+func (rs *ResourceService) Create(title, source string, status int64, tags []int64) (db.Resource, error) {
 	ctx := context.Background()
 
 	resource, err := rs.store.CreateResource(ctx, db.CreateResourceParams{
@@ -31,7 +31,7 @@ func (rs *ResourceService) Create(title, source string, status int64, tags []int
 		})
 	}
 
-	return err
+	return resource, err
 }
 
 type FullResource struct {
@@ -101,7 +101,7 @@ func (rs *ResourceService) SetStatus(resourcesID int64, statusID int64) error {
 	return rs.store.SetStatus(context.Background(), db.SetStatusParams{ID: resourcesID, StatusID: statusID})
 }
 
-func (rs *ResourceService) Edit(id int64, title, source string, status int64, tags []int64) error {
+func (rs *ResourceService) Edit(id int64, title, source string, status int64, tags []int64) (db.Resource, error) {
 	ctx := context.Background()
 
 	resource, err := rs.store.UpdateResource(ctx, db.UpdateResourceParams{
@@ -120,7 +120,7 @@ func (rs *ResourceService) Edit(id int64, title, source string, status int64, ta
 		})
 	}
 
-	return err
+	return resource, err
 }
 
 func (rs *ResourceService) GetResource(id int64) (FullResource, error) {
@@ -176,4 +176,29 @@ func (rs *ResourceService) GetNote(id int64) (db.Note, error) {
 
 func (rs *ResourceService) DeleteNote(id int64) error {
 	return rs.store.DeleteNote(context.Background(), id)
+}
+
+func (rs *ResourceService) MakeFullResource(rsrc db.Resource) (FullResource, error) {
+	ctx := context.Background()
+
+	status, err := rs.store.GetStatus(ctx, rsrc.StatusID)
+	if err != nil {
+		return FullResource{}, err
+	}
+
+	tags, err := rs.store.GetResourceTags(ctx, rsrc.ID)
+	if err != nil {
+		return FullResource{}, err
+	}
+
+	notes, err := rs.store.GetNotes(ctx, db.GetNotesParams{EntityID: rsrc.ID, EntityType: "resource"})
+
+	resource := FullResource{
+		Resource: rsrc,
+		Status:   status,
+		Tags:     tags,
+		Notes:    notes,
+	}
+
+	return resource, nil
 }

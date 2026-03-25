@@ -3,14 +3,12 @@ package handler
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/ellezio/itinera/internal/db"
 	"github.com/ellezio/itinera/internal/resource"
-	"github.com/ellezio/itinera/web/templates/pages"
 	resourceView "github.com/ellezio/itinera/web/templates/resource"
 )
 
@@ -67,28 +65,21 @@ func (rh *ResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		tagIDs = append(tagIDs, tid)
 	}
 
-	if err := rh.resources.Create(title, source, statusID, tagIDs); err != nil {
+	rsrc, err := rh.resources.Create(title, source, statusID, tagIDs)
+	if err != nil {
 		slog.Error(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	// resources, err := rh.resources.GetAll()
-	// if err != nil {
-	// 	slog.Error(err.Error())
-	// 	http.Error(w, "", http.StatusInternalServerError)
-	// 	return
-	// }
-	//
-	// statuses, err := rh.resources.GetStatuses()
-	// if err != nil {
-	// 	slog.Error(err.Error())
-	// 	http.Error(w, "", http.StatusInternalServerError)
-	// 	return
-	// }
-
-	redirect(w, r, "/resources", http.StatusFound)
-	// components.ResourceList(resources, statuses).Render(r.Context(), w)
+	fullRsrc, err := rh.resources.MakeFullResource(rsrc)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+	resourceView.ResourceInfoPane(fullRsrc, nil, nil, false).Render(r.Context(), w)
+	resourceView.ListResourcesCards([]resource.FullResource{fullRsrc}).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -122,11 +113,6 @@ func (rh *ResourceHandler) EditPage(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	rid, _ := strconv.ParseInt(id, 10, 64)
 
-	if r.Header.Get("Hx-Request") == "true" {
-		w.Header().Add("Hx-Redirect", fmt.Sprintf("/resources/%d/edit", rid))
-		return
-	}
-
 	tags, err := rh.resources.GetTags()
 	if err != nil {
 		slog.Error(err.Error())
@@ -141,24 +127,22 @@ func (rh *ResourceHandler) EditPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	if rid == 0 {
-		pages.Resources(tags, statuses).Render(r.Context(), w)
-		return
-	}
 
-	resource, err := rh.resources.GetResource(rid)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			http.Redirect(w, r, "/resources", http.StatusFound)
+	var resource resource.FullResource
+	if rid > 0 {
+		if resource, err = rh.resources.GetResource(rid); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Redirect(w, r, "/resources", http.StatusFound)
+				return
+			}
+
+			slog.Error(err.Error())
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
-
-		slog.Error(err.Error())
-		http.Error(w, "", http.StatusInternalServerError)
-		return
 	}
 
-	pages.ResourceEdit(resource, tags, statuses).Render(r.Context(), w)
+	resourceView.ResourceInfoPane(resource, tags, statuses, true).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Edit(w http.ResponseWriter, r *http.Request) {
@@ -184,14 +168,22 @@ func (rh *ResourceHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		tagIDs = append(tagIDs, tid)
 	}
 
-	if err := rh.resources.Edit(rid, title, source, statusID, tagIDs); err != nil {
+	rsrc, err := rh.resources.Edit(rid, title, source, statusID, tagIDs)
+	if err != nil {
 		slog.Error(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Add("Hx-Redirect", "/resources")
-	w.WriteHeader(http.StatusFound)
+	fullRsrc, err := rh.resources.MakeFullResource(rsrc)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.ResourceInfoPane(fullRsrc, nil, nil, false).Render(r.Context(), w)
+	resourceView.Card(fullRsrc).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Info(w http.ResponseWriter, r *http.Request) {
@@ -218,8 +210,7 @@ func (rh *ResourceHandler) Info(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	pages.Resource(rsrc, tags, statuses)
-	resourceView.ResourceInfoPane(rsrc).Render(r.Context(), w)
+	resourceView.ResourceInfoPane(rsrc, tags, statuses, false).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) ResourceNoteEditBox(w http.ResponseWriter, r *http.Request) {

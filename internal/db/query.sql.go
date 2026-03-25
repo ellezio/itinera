@@ -363,6 +363,17 @@ func (q *Queries) GetResourcesTags(ctx context.Context, resources []int64) ([]Ge
 	return items, nil
 }
 
+const getStatus = `-- name: GetStatus :one
+SELECT id, name, color FROM statuses WHERE id=?
+`
+
+func (q *Queries) GetStatus(ctx context.Context, id int64) (Status, error) {
+	row := q.db.QueryRowContext(ctx, getStatus, id)
+	var i Status
+	err := row.Scan(&i.ID, &i.Name, &i.Color)
+	return i, err
+}
+
 const getStatuses = `-- name: GetStatuses :many
 SELECT id, name, color FROM statuses
 `

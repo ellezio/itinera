@@ -17,16 +17,13 @@ templ Page(rsrcs []resource.FullResource, tags []db.Tag, statuses []db.Status) {
 							<button
 								class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer"
 								hx-get="/resources/0/edit"
+								hx-swap="none"
 							>+ Add</button>
 						</div>
-						<div class="pt-4 flex flex-wrap gap-3 content-start">
-							for _, rsrc := range rsrcs {
-								@Card(rsrc)
-							}
-						</div>
+						@ListResourcesCards(rsrcs)
 					</div>
 					<div id="pane-divider" class="w-1.5 bg-bg-2 cursor-col-resize"></div>
-					<div id="pane">
+					<div id="pane" class="w-xl">
 						<div id="resource-info-pane" hx-swap-oob="true" class="w-full h-full bg-bg-1 border-l-2 border-l-bg-2 pt-4 px-3 flex flex-col gap-4"></div>
 					</div>
 				</div>
@@ -36,7 +33,7 @@ templ Page(rsrcs []resource.FullResource, tags []db.Tag, statuses []db.Status) {
 				const pane = document.getElementById('pane');
 				const container = document.getElementById('pane-container');
 
-				let dragging = false, startX = 0, startWidth = 0;
+				let dragging = false, startX = 0, startWidth = pane.offsetWidth;
 
 				divider.addEventListener('mousedown', e => {
 					dragging = true;
@@ -97,6 +94,18 @@ templ SideNav(tags []db.Tag, statuses []db.Status) {
 	</div>
 }
 
+templ ListResourcesCards(rsrcs []resource.FullResource) {
+	<div
+		id="resources-cards-list"
+		hx-swap-oob="beforeend"
+		class="pt-4 flex flex-wrap gap-3 content-start"
+	>
+		for _, rsrc := range rsrcs {
+			@Card(rsrc)
+		}
+	</div>
+}
+
 templ ListItem(text, mark, color string, count int) {
 	<div class="flex items-center justify-between w-full px-4 py-1 hover:bg-bg-2 cursor-pointer">
 		<div class="flex items-center gap-2">
@@ -113,10 +122,12 @@ templ ListItem(text, mark, color string, count int) {
 
 templ Card(rsrc resource.FullResource) {
 	<div
+		id={ fmt.Sprintf("resource-card-%d", rsrc.Resource.ID) }
 		class="border border-bg-3 hover:border-bg-4 w-80 rounded-md overflow-hidden h-fit"
 		hx-get={ fmt.Sprintf("/resources/%d", rsrc.Resource.ID) }
 		hx-trigger="click"
 		hx-swap="none"
+		hx-swap-oob="true"
 	>
 		<div class="min-h-fit h-24 bg-bg-2"></div>
 		<div class="h-36 bg-bg-1 border-t border-t-bg-3 px-3 py-2 flex flex-col gap-2">
@@ -141,8 +152,10 @@ templ Card(rsrc resource.FullResource) {
 	</div>
 }
 
-templ ResourceInfoPane(rsrc resource.FullResource) {
-	<div id="resource-info-pane" hx-swap-oob="true" class="w-full h-full bg-bg-1 border-l-2 border-l-bg-2 py-4 px-3 flex flex-col gap-4 overflow-y-auto scrollbar">
+templ ResourceInfoPane(rsrc resource.FullResource, tags []db.Tag, statuses []db.Status, edit bool) {
+	{{ elemID := "resource-info-pane" }}
+	{{ newResource := edit && rsrc.Resource.ID == 0 }}
+	<div id={ elemID } hx-swap-oob="true" class="w-full h-full bg-bg-1 border-l-2 border-l-bg-2 py-4 px-3 flex flex-col gap-4 overflow-y-auto scrollbar">
 		<div class="flex gap-2 justify-end">
 			<button
 				class="px-4 py-2 rounded-xl border border-bg-4 hover:bg-bg-0 cursor-pointer text-fg-0"
@@ -151,32 +164,108 @@ templ ResourceInfoPane(rsrc resource.FullResource) {
 			<button class="px-4 py-2 rounded-xl border border-bg-4 hover:bg-bg-0 cursor-pointer text-fg-0">x</button>
 		</div>
 		<div class="min-h-fit h-24 bg-bg-2 rounded-md border border-bg-3 overflow-hidden"></div>
-		<div>
-			<div>{ rsrc.Resource.Title }</div>
-			<a class="text-blue-1 text-xs hover:underline" target="_blank" href={ rsrc.Resource.Source }>{ rsrc.Resource.Source }</a>
-		</div>
-		<div>
-			<div class="text-bg-4 text-sm tracking-wider">TAGS</div>
-			<div class="flex flex-wrap gap-1 mt-1">
-				for _, tag := range rsrc.Tags {
-					<div class={ "border border-" + tag.Color + "-1 text-" + tag.Color + "-1 bg-" + tag.Color + "-0/10 px-2 rounded-md text-xs" }>#{ tag.Name }</div>
+		if edit {
+			<form
+				if newResource {
+					hx-post="/resources"
+				} else {
+					hx-post={ fmt.Sprintf("/resources/%d", rsrc.Resource.ID) }
 				}
+			>
+				<div class="flex flex-col">
+					<input name="title" value={ rsrc.Resource.Title }/>
+					<input name="source" value={ rsrc.Resource.Source }/>
+				</div>
+				<div>
+					<div class="text-bg-4 text-sm tracking-wider">STATUS</div>
+					<select id="resource-form-status" hx-trigger="change" name="status" class="bg-bg-1 border border-orange-0 outline-none">
+						for _, s := range statuses {
+							<option
+								value={ s.ID }
+								if edit && s.ID == rsrc.Status.ID {
+									selected
+								}
+							>{ s.Name }</option>
+						}
+					</select>
+				</div>
+				<div>
+					<div class="text-bg-4 text-sm tracking-wider">TAGS</div>
+					<div class="flex flex-wrap gap-1 mt-1">
+						<select multiple id="resource-form-tags" name="tags" class="bg-bg-1 border border-orange-0 outline-none">
+							for _, t := range tags {
+								{{
+									isSelected := false
+									if edit {
+										for _, rt := range rsrc.Tags {
+											if rt.ID == t.ID {
+												isSelected = true
+												break
+											}
+										}
+									}
+								}}
+								<option
+									value={ t.ID }
+									if isSelected {
+										selected
+									}
+								>{ t.Name }</option>
+							}
+						</select>
+					</div>
+				</div>
+				<div class="flex mt-1.5 gap-1">
+					<input
+						type="submit"
+						class="text-fg-0 bg-aqua-0/30 hover:bg-aqua-0/50 border border-aqua-1 rounded-sm flex-1 text-sm cursor-pointer"
+						value="Save"
+					/>
+					<input
+						type="button"
+						class="text-fg-0 bg-red-0/30 hover:bg-red-0/50 border border-red-1 rounded-sm flex-1 text-sm cursor-pointer"
+						value="Cancel"
+						if newResource {
+							onclick={ templ.JSUnsafeFuncCall("const p=document.getElementById('" + elemID + "');p.childNodes.forEach(htmx.remove);p.childNodes.forEach(e=>e.remove())") }
+						} else {
+							hx-get={ fmt.Sprintf("/resources/%d", rsrc.Resource.ID) }
+							hx-swap="none"
+						}
+					/>
+				</div>
+			</form>
+		} else {
+			<div>
+				<div>{ rsrc.Resource.Title }</div>
+				<a class="text-blue-1 text-xs hover:underline" target="_blank" href={ rsrc.Resource.Source }>{ rsrc.Resource.Source }</a>
 			</div>
-		</div>
-		<div class="w-full">
-			<div class="mb-2 text-bg-4 text-sm tracking-wider">NOTES</div>
-			<div id="note-list" class="flex flex-col gap-2 mb-4">
-				for _, n := range rsrc.Notes {
-					@Note(n, false)
-				}
+			<div>
+				<div class="text-bg-4 text-sm tracking-wider">STATUS</div>
+				<div class={ "text-" + rsrc.Status.Color + "-1 rounded-md text-sm mt-1" }>{ rsrc.Status.Name }</div>
 			</div>
-			<button
-				class="text-fg-0 border border-bg-4 py-2 w-full rounded-md hover:bg-bg-0 cursor-pointer"
-				hx-get={ fmt.Sprintf("/resources/%d/notes/0/edit", rsrc.Resource.ID) }
-				hx-swap="beforeend"
-				hx-target="#note-list"
-			>+ add note</button>
-		</div>
+			<div>
+				<div class="text-bg-4 text-sm tracking-wider">TAGS</div>
+				<div class="flex flex-wrap gap-1 mt-1">
+					for _, tag := range rsrc.Tags {
+						<div class={ "border border-" + tag.Color + "-1 text-" + tag.Color + "-1 bg-" + tag.Color + "-0/10 px-2 rounded-md text-xs" }>#{ tag.Name }</div>
+					}
+				</div>
+			</div>
+			<div class="w-full">
+				<div class="mb-2 text-bg-4 text-sm tracking-wider">NOTES</div>
+				<div id="note-list" class="flex flex-col gap-2 mb-4">
+					for _, n := range rsrc.Notes {
+						@Note(n, false)
+					}
+				</div>
+				<button
+					class="text-fg-0 border border-bg-4 py-2 w-full rounded-md hover:bg-bg-0 cursor-pointer"
+					hx-get={ fmt.Sprintf("/resources/%d/notes/0/edit", rsrc.Resource.ID) }
+					hx-swap="beforeend"
+					hx-target="#note-list"
+				>+ add note</button>
+			</div>
+		}
 	</div>
 }
 

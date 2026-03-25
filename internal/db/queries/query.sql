@@ -91,3 +91,6 @@ title=?,
 content=?
 WHERE id=?
 RETURNING *;
+
+-- name: GetStatus :one
+SELECT * FROM statuses WHERE id=?;
