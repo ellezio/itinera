@@ -88,6 +88,48 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 	return i, err
 }
 
+const createStatus = `-- name: CreateStatus :one
+INSERT INTO statuses (
+ name, color
+) VALUES (
+  ?, ?
+)
+RETURNING id, name, color
+`
+
+type CreateStatusParams struct {
+	Name  string
+	Color string
+}
+
+func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, createStatus, arg.Name, arg.Color)
+	var i Status
+	err := row.Scan(&i.ID, &i.Name, &i.Color)
+	return i, err
+}
+
+const createTag = `-- name: CreateTag :one
+INSERT INTO tags (
+ name, color
+) VALUES (
+  ?, ?
+)
+RETURNING id, name, color
+`
+
+type CreateTagParams struct {
+	Name  string
+	Color string
+}
+
+func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error) {
+	row := q.db.QueryRowContext(ctx, createTag, arg.Name, arg.Color)
+	var i Tag
+	err := row.Scan(&i.ID, &i.Name, &i.Color)
+	return i, err
+}
+
 const deleteNote = `-- name: DeleteNote :exec
 DELETE FROM notes WHERE id=?
 `
@@ -104,6 +146,24 @@ WHERE id = ?
 
 func (q *Queries) DeleteResource(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteResource, id)
+	return err
+}
+
+const deleteStatus = `-- name: DeleteStatus :exec
+DELETE FROM statuses WHERE id=?
+`
+
+func (q *Queries) DeleteStatus(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteStatus, id)
+	return err
+}
+
+const deleteTag = `-- name: DeleteTag :exec
+DELETE FROM tags WHERE id=?
+`
+
+func (q *Queries) DeleteTag(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteTag, id)
 	return err
 }
 
@@ -401,6 +461,18 @@ func (q *Queries) GetStatuses(ctx context.Context) ([]Status, error) {
 	return items, nil
 }
 
+const getTag = `-- name: GetTag :one
+SELECT id, name, color FROM tags
+WHERE id=?
+`
+
+func (q *Queries) GetTag(ctx context.Context, id int64) (Tag, error) {
+	row := q.db.QueryRowContext(ctx, getTag, id)
+	var i Tag
+	err := row.Scan(&i.ID, &i.Name, &i.Color)
+	return i, err
+}
+
 const getTags = `-- name: GetTags :many
 SELECT id, name, color FROM tags
 `
@@ -523,5 +595,47 @@ func (q *Queries) UpdateResource(ctx context.Context, arg UpdateResourceParams) 
 		&i.SourceType,
 		&i.StatusID,
 	)
+	return i, err
+}
+
+const updateStatus = `-- name: UpdateStatus :one
+UPDATE statuses SET
+name=?,
+color=?
+WHERE id=?
+RETURNING id, name, color
+`
+
+type UpdateStatusParams struct {
+	Name  string
+	Color string
+	ID    int64
+}
+
+func (q *Queries) UpdateStatus(ctx context.Context, arg UpdateStatusParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, updateStatus, arg.Name, arg.Color, arg.ID)
+	var i Status
+	err := row.Scan(&i.ID, &i.Name, &i.Color)
+	return i, err
+}
+
+const updateTag = `-- name: UpdateTag :one
+UPDATE tags SET
+name=?,
+color=?
+WHERE id=?
+RETURNING id, name, color
+`
+
+type UpdateTagParams struct {
+	Name  string
+	Color string
+	ID    int64
+}
+
+func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, error) {
+	row := q.db.QueryRowContext(ctx, updateTag, arg.Name, arg.Color, arg.ID)
+	var i Tag
+	err := row.Scan(&i.ID, &i.Name, &i.Color)
 	return i, err
 }

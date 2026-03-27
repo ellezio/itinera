@@ -94,3 +94,44 @@ RETURNING *;
 
 -- name: GetStatus :one
 SELECT * FROM statuses WHERE id=?;
+
+-- name: CreateTag :one
+INSERT INTO tags (
+ name, color
+) VALUES (
+  ?, ?
+)
+RETURNING *;
+
+-- name: CreateStatus :one
+INSERT INTO statuses (
+ name, color
+) VALUES (
+  ?, ?
+)
+RETURNING *;
+
+
+-- name: GetTag :one
+SELECT * FROM tags
+WHERE id=?;
+
+-- name: UpdateStatus :one
+UPDATE statuses SET
+name=?,
+color=?
+WHERE id=?
+RETURNING *;
+
+-- name: UpdateTag :one
+UPDATE tags SET
+name=?,
+color=?
+WHERE id=?
+RETURNING *;
+
+-- name: DeleteStatus :exec
+DELETE FROM statuses WHERE id=?;
+
+-- name: DeleteTag :exec
+DELETE FROM tags WHERE id=?;

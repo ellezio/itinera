@@ -279,3 +279,187 @@ func (rh *ResourceHandler) DeleteResourceNote(w http.ResponseWriter, r *http.Req
 		return
 	}
 }
+
+func (rh *ResourceHandler) CreateTag(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	name := r.FormValue("name")
+	color := r.FormValue("color")
+
+	tag, err := rh.resources.CreateTag(name, color)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.SideNavTagList([]db.Tag{tag}).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) CreateStatus(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	name := r.FormValue("name")
+	color := r.FormValue("color")
+
+	status, err := rh.resources.CreateStatus(name, color)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.SideNavStatusList([]db.Status{status}).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) GetStatusEdit(w http.ResponseWriter, r *http.Request) {
+	statusID_str := r.PathValue("id")
+	statusID, _ := strconv.ParseInt(statusID_str, 10, 64)
+
+	var status db.Status
+
+	if statusID > 0 {
+		var err error
+		status, err = rh.resources.GetStatus(statusID)
+		if err != nil {
+			slog.Error(err.Error())
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	resourceView.ListItemEdit(status.ID, status.Name, "status", status.Color).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) GetTagEdit(w http.ResponseWriter, r *http.Request) {
+	tagID_str := r.PathValue("id")
+	tagID, _ := strconv.ParseInt(tagID_str, 10, 64)
+
+	var tag db.Tag
+
+	if tagID > 0 {
+		var err error
+		tag, err = rh.resources.GetTag(tagID)
+		if err != nil {
+			slog.Error(err.Error())
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	resourceView.ListItemEdit(tag.ID, tag.Name, "tag", tag.Color).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) GetTag(w http.ResponseWriter, r *http.Request) {
+	tagID_str := r.PathValue("id")
+	tagID, _ := strconv.ParseInt(tagID_str, 10, 64)
+
+	if tagID <= 0 {
+		http.Error(w, "invalid tagID", http.StatusBadRequest)
+		return
+	}
+
+	tag, err := rh.resources.GetTag(tagID)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, 1).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
+	statusID_str := r.PathValue("id")
+	statusID, _ := strconv.ParseInt(statusID_str, 10, 64)
+
+	if statusID <= 0 {
+		http.Error(w, "invalid statusID", http.StatusBadRequest)
+		return
+	}
+
+	status, err := rh.resources.GetStatus(statusID)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.ListItem(status.ID, status.Name, "", status.Color, 1).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) EditTag(w http.ResponseWriter, r *http.Request) {
+	tagID_str := r.PathValue("id")
+	tagID, _ := strconv.ParseInt(tagID_str, 10, 64)
+
+	if tagID <= 0 {
+		http.Error(w, "invalid tagID", http.StatusBadRequest)
+		return
+	}
+
+	r.ParseForm()
+	name := r.FormValue("name")
+	color := r.FormValue("color")
+
+	tag, err := rh.resources.UpdateTag(tagID, name, color)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, 1).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) EditStatus(w http.ResponseWriter, r *http.Request) {
+	statusID_str := r.PathValue("id")
+	statusID, _ := strconv.ParseInt(statusID_str, 10, 64)
+
+	if statusID <= 0 {
+		http.Error(w, "invalid statusID", http.StatusBadRequest)
+		return
+	}
+
+	r.ParseForm()
+	name := r.FormValue("name")
+	color := r.FormValue("color")
+
+	status, err := rh.resources.UpdateStatus(statusID, name, color)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.ListItem(status.ID, status.Name, "", status.Color, 1).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) DeleteStatus(w http.ResponseWriter, r *http.Request) {
+	statusID_str := r.PathValue("id")
+	statusID, _ := strconv.ParseInt(statusID_str, 10, 64)
+
+	if statusID <= 0 {
+		http.Error(w, "invalid statusID", http.StatusBadRequest)
+		return
+	}
+
+	if err := rh.resources.DeleteStatus(statusID); err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (rh *ResourceHandler) DeleteTag(w http.ResponseWriter, r *http.Request) {
+	tagID_str := r.PathValue("id")
+	tagID, _ := strconv.ParseInt(tagID_str, 10, 64)
+
+	if tagID <= 0 {
+		http.Error(w, "invalid tagID", http.StatusBadRequest)
+		return
+	}
+
+	if err := rh.resources.DeleteTag(tagID); err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+}

@@ -64,6 +64,18 @@ func main() {
 	mux.HandleFunc("POST /resources/{id}", resourceHandler.Edit)
 	mux.HandleFunc("DELETE /resources/{id}", resourceHandler.Delete)
 
+	mux.HandleFunc("GET /tags/{id}", resourceHandler.GetTag)
+	mux.HandleFunc("GET /tags/{id}/edit", resourceHandler.GetTagEdit)
+	mux.HandleFunc("POST /tags", resourceHandler.CreateTag)
+	mux.HandleFunc("POST /tags/{id}/edit", resourceHandler.EditTag)
+	mux.HandleFunc("DELETE /tags/{id}", resourceHandler.DeleteTag)
+
+	mux.HandleFunc("GET /statuses/{id}", resourceHandler.GetStatusEdit)
+	mux.HandleFunc("GET /statuses/{id}/edit", resourceHandler.GetStatusEdit)
+	mux.HandleFunc("POST /statuses", resourceHandler.CreateStatus)
+	mux.HandleFunc("POST /statuses/{id}/edit", resourceHandler.EditStatus)
+	mux.HandleFunc("DELETE /statuses/{id}", resourceHandler.DeleteStatus)
+
 	fmt.Printf("listening on %s\n", *port)
 	if err := http.ListenAndServe(":"+*port, mux); err != nil {
 		log.Fatal(err)

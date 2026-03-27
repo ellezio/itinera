@@ -75,21 +75,47 @@ templ TopNav() {
 		<div class="flex gap-2">
 			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer bg-bg-2">resources</div>
 			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer">collection</div>
-			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer">notes</div>
-			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer">tags</div>
 		</div>
 	</div>
 }
 
 templ SideNav(tags []db.Tag, statuses []db.Status) {
 	<div id="side-nav" class="w-64 h-full bg-bg-1 border-r-2 border-r-bg-2 pt-2">
-		<div class="text-bg-4 px-4 py-1 text-sm tracking-wider">STATUS</div>
+		<div class="text-bg-4 px-4 py-1 text-sm tracking-wider flex justify-between">
+			<span>STATUS</span>
+			<button
+				class="text-fg-2 border border-fg-2 px-1.5 rounded-sm hover:bg-bg-0 cursor-pointer"
+				hx-get="/statuses/0/edit"
+				hx-target="#nav-list-statuses"
+				hx-swap="afterbegin"
+			>+</button>
+		</div>
+		@SideNavStatusList(statuses)
+		<div class="text-bg-4 px-4 pt-4 pb-1 text-sm tracking-wider flex justify-between">
+			<span>TAGS</span>
+			<button
+				class="text-fg-2 border border-fg-2 px-1.5 rounded-sm hover:bg-bg-0 cursor-pointer"
+				hx-get="/tags/0/edit"
+				hx-target="#nav-list-tags"
+				hx-swap="afterbegin"
+			>+</button>
+		</div>
+		@SideNavTagList(tags)
+	</div>
+}
+
+templ SideNavStatusList(statuses []db.Status) {
+	<div id="nav-list-statuses" hx-swap-oob="beforeend">
 		for _, s := range statuses {
-			@ListItem(s.Name, "", s.Color+"-1", 1)
+			@ListItem(s.ID, s.Name, "", s.Color, 1)
 		}
-		<div class="text-bg-4 px-4 pt-4 pb-1 text-sm tracking-wider">TAGS</div>
+	</div>
+}
+
+templ SideNavTagList(tags []db.Tag) {
+	<div id="nav-list-tags" hx-swap-oob="beforeend">
 		for _, t := range tags {
-			@ListItem(t.Name, "#", t.Color+"-1", 1)
+			@ListItem(t.ID, t.Name, "#", t.Color, 1)
 		}
 	</div>
 }
@@ -106,13 +132,106 @@ templ ListResourcesCards(rsrcs []resource.FullResource) {
 	</div>
 }
 
-templ ListItem(text, mark, color string, count int) {
-	<div class="flex items-center justify-between w-full px-4 py-1 hover:bg-bg-2 cursor-pointer">
+templ ListItemEdit(id int64, text, kind, color string) {
+	{{
+		colors := []string{"red", "green", "yellow", "blue", "purple", "aqua", "gray", "orange"}
+		elemID := fmt.Sprintf("%s-list-item-form-%d", kind, id)
+		isNew := id == 0
+
+		hxBase := ""
+		switch kind {
+		case "status":
+			hxBase = "/statuses"
+		case "tag":
+			hxBase = "/tags"
+		}
+
+		hxPost := ""
+		if !isNew {
+			hxPost = fmt.Sprintf("%s/%d/edit", hxBase, id)
+		}
+
+		hxDelete := ""
+		if !isNew {
+			hxDelete = fmt.Sprintf("%s/%d", hxBase, id)
+		}
+	}}
+	<form
+		id={ elemID }
+		class="flex justify-center gap-2 flex-col px-4 py-1"
+		hx-post={ hxPost }
+		hx-swap="outerHTML"
+	>
+		<div class="flex gap-2">
+			<select name="color" class="bg-bg-0">
+				for _, c := range colors {
+					<option
+						value={ c }
+						class={ "text-" + c + "-1" }
+						if c == color {
+							selected
+						}
+					>{ c }</option>
+				}
+			</select>
+			<input name="name" class="text-sm w-full bg-bg-0" value={ text }/>
+		</div>
+		<div class="flex gap-2">
+			<input
+				type="submit"
+				class="text-fg-0 bg-aqua-0/30 hover:bg-aqua-0/50 border border-aqua-1 rounded-sm flex-1 text-sm cursor-pointer"
+				value="Save"
+			/>
+			<input
+				type="button"
+				class="text-fg-0 bg-gray-0/30 hover:bg-gray-0/50 border border-gray-1 rounded-sm flex-1 text-sm cursor-pointer"
+				value="Cancel"
+				if isNew {
+					onclick={ templ.JSUnsafeFuncCall("htmx.remove(document.getElementById('" + elemID + "'))") }
+				}
+				else
+				if kind == "status" {
+					hx-get={ fmt.Sprintf("/statuses/%d", id) }
+					hx-target={ "#" + elemID }
+					hx-swap="outerHTML"
+				}
+				else
+				if kind == "tag" {
+					hx-get={ fmt.Sprintf("/tags/%d", id) }
+					hx-target={ "#" + elemID }
+					hx-swap="outerHTML"
+				}
+			/>
+			if !isNew {
+				<input
+					type="button"
+					class="text-fg-0 bg-red-0/30 hover:bg-red-0/50 border border-red-1 rounded-sm flex-1 text-sm cursor-pointer"
+					value="Delete"
+					hx-delete={ hxDelete }
+					hx-target={ "#" + elemID }
+					hx-swap="outerHTML"
+				/>
+			}
+		</div>
+	</form>
+}
+
+templ ListItem(id int64, text, mark, color string, count int) {
+	<div
+		class="flex items-center justify-between w-full px-4 py-1 hover:bg-bg-2 cursor-pointer"
+		hx-trigger="dblclick"
+		hx-swap="outerHTML"
+		if mark == "" {
+			hx-get={ fmt.Sprintf("/statuses/%d/edit", id) }
+		} else {
+			hx-get={ fmt.Sprintf("/tags/%d/edit", id) }
+		}
+	>
 		<div class="flex items-center gap-2">
 			if mark == "" {
-				<div class={ "w-1.5 h-1.5 rounded-full shrink-0 bg-" + color }></div>
+				<div class={ "w-1.5 h-1.5 rounded-full shrink-0 bg-" + color + "-1" }></div>
 			} else {
-				<div class={ "italic text-" + color }>{ mark }</div>
+				<div class={ "italic text-" + color + "-1" }>{ mark }</div>
 			}
 			<span class="text-sm">{ text } </span>
 		</div>

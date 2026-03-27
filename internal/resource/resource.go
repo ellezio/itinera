@@ -202,3 +202,49 @@ func (rs *ResourceService) MakeFullResource(rsrc db.Resource) (FullResource, err
 
 	return resource, nil
 }
+
+func (rs *ResourceService) CreateTag(name, color string) (db.Tag, error) {
+	return rs.store.CreateTag(context.Background(), db.CreateTagParams{
+		Name:  name,
+		Color: color,
+	})
+}
+
+func (rs *ResourceService) CreateStatus(name, color string) (db.Status, error) {
+	return rs.store.CreateStatus(context.Background(), db.CreateStatusParams{
+		Name:  name,
+		Color: color,
+	})
+}
+
+func (rs *ResourceService) GetStatus(id int64) (db.Status, error) {
+	return rs.store.GetStatus(context.Background(), id)
+}
+
+func (rs *ResourceService) GetTag(id int64) (db.Tag, error) {
+	return rs.store.GetTag(context.Background(), id)
+}
+
+func (rs *ResourceService) UpdateStatus(id int64, name, color string) (db.Status, error) {
+	return rs.store.UpdateStatus(context.Background(), db.UpdateStatusParams{
+		ID:    id,
+		Name:  name,
+		Color: color,
+	})
+}
+
+func (rs *ResourceService) UpdateTag(id int64, name, color string) (db.Tag, error) {
+	return rs.store.UpdateTag(context.Background(), db.UpdateTagParams{
+		ID:    id,
+		Name:  name,
+		Color: color,
+	})
+}
+
+func (rs *ResourceService) DeleteStatus(id int64) error {
+	return rs.store.DeleteStatus(context.Background(), id)
+}
+
+func (rs *ResourceService) DeleteTag(id int64) error {
+	return rs.store.DeleteTag(context.Background(), id)
+}
