@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 )
 
@@ -18,6 +19,27 @@ WHERE resource_id = ?
 func (q *Queries) ClearTags(ctx context.Context, resourceID int64) error {
 	_, err := q.db.ExecContext(ctx, clearTags, resourceID)
 	return err
+}
+
+const createCollection = `-- name: CreateCollection :one
+INSERT INTO collections (
+  title, description
+) VALUES (
+  ?, ?
+)
+RETURNING id, title, description
+`
+
+type CreateCollectionParams struct {
+	Title       string
+	Description sql.NullString
+}
+
+func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionParams) (Collection, error) {
+	row := q.db.QueryRowContext(ctx, createCollection, arg.Title, arg.Description)
+	var i Collection
+	err := row.Scan(&i.ID, &i.Title, &i.Description)
+	return i, err
 }
 
 const createNote = `-- name: CreateNote :one
@@ -165,6 +187,145 @@ DELETE FROM tags WHERE id=?
 func (q *Queries) DeleteTag(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteTag, id)
 	return err
+}
+
+const getCollection = `-- name: GetCollection :one
+SELECT id, title, description FROM collections
+WHERE id=?
+`
+
+func (q *Queries) GetCollection(ctx context.Context, id int64) (Collection, error) {
+	row := q.db.QueryRowContext(ctx, getCollection, id)
+	var i Collection
+	err := row.Scan(&i.ID, &i.Title, &i.Description)
+	return i, err
+}
+
+const getCollectionResources = `-- name: GetCollectionResources :many
+SELECT r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name, s.color FROM collection_resources cr
+JOIN resources r ON cr.resource_id = r.id
+JOIN statuses s ON r.status_id = s.id
+WHERE cr.collection_id=?
+`
+
+type GetCollectionResourcesRow struct {
+	Resource Resource
+	Status   Status
+}
+
+func (q *Queries) GetCollectionResources(ctx context.Context, collectionID int64) ([]GetCollectionResourcesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCollectionResources, collectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCollectionResourcesRow
+	for rows.Next() {
+		var i GetCollectionResourcesRow
+		if err := rows.Scan(
+			&i.Resource.ID,
+			&i.Resource.Title,
+			&i.Resource.Source,
+			&i.Resource.SourceType,
+			&i.Resource.StatusID,
+			&i.Status.ID,
+			&i.Status.Name,
+			&i.Status.Color,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCollections = `-- name: GetCollections :many
+SELECT id, title, description FROM collections
+`
+
+func (q *Queries) GetCollections(ctx context.Context) ([]Collection, error) {
+	rows, err := q.db.QueryContext(ctx, getCollections)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Collection
+	for rows.Next() {
+		var i Collection
+		if err := rows.Scan(&i.ID, &i.Title, &i.Description); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCollectionsResources = `-- name: GetCollectionsResources :many
+SELECT cr.collection_id, r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name, s.color FROM collection_resources cr
+JOIN resources r ON cr.resource_id = r.id
+JOIN statuses s ON r.status_id = s.id
+WHERE cr.collection_id in /*SLICE:collections*/?
+`
+
+type GetCollectionsResourcesRow struct {
+	CollectionID int64
+	Resource     Resource
+	Status       Status
+}
+
+func (q *Queries) GetCollectionsResources(ctx context.Context, collections []int64) ([]GetCollectionsResourcesRow, error) {
+	query := getCollectionsResources
+	var queryParams []interface{}
+	if len(collections) > 0 {
+		for _, v := range collections {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:collections*/?", strings.Repeat(",?", len(collections))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:collections*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCollectionsResourcesRow
+	for rows.Next() {
+		var i GetCollectionsResourcesRow
+		if err := rows.Scan(
+			&i.CollectionID,
+			&i.Resource.ID,
+			&i.Resource.Title,
+			&i.Resource.Source,
+			&i.Resource.SourceType,
+			&i.Resource.StatusID,
+			&i.Status.ID,
+			&i.Status.Name,
+			&i.Status.Color,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getNote = `-- name: GetNote :one

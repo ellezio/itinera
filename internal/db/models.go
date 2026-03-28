@@ -4,6 +4,21 @@
 
 package db
 
+import (
+	"database/sql"
+)
+
+type Collection struct {
+	ID          int64
+	Title       string
+	Description sql.NullString
+}
+
+type CollectionResource struct {
+	CollectionID int64
+	ResourceID   int64
+}
+
 type Note struct {
 	ID         int64
 	Title      string

@@ -33,3 +33,16 @@ CREATE TABLE IF NOT EXISTS notes (
   entity_id INTEGER NOT NULL,
   entity_type TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS collections (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT
+);
+
+CREATE TABLE IF NOT EXISTS collection_resources (
+  collection_id INTEGER NOT NULL,
+  resource_id INTEGER NOT NULL,
+  FOREIGN KEY(collection_id) REFERENCES collections(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY(resource_id) REFERENCES resources(id) ON UPDATE CASCADE ON DELETE CASCADE
+);

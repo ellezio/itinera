@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/ellezio/itinera/internal/db"
 )
@@ -247,4 +248,68 @@ func (rs *ResourceService) DeleteStatus(id int64) error {
 
 func (rs *ResourceService) DeleteTag(id int64) error {
 	return rs.store.DeleteTag(context.Background(), id)
+}
+func (rs *ResourceService) CreateCollection(title, desc string) (db.Collection, error) {
+	return rs.store.CreateCollection(context.Background(), db.CreateCollectionParams{
+		Title:       title,
+		Description: sql.NullString{String: desc, Valid: desc != ""},
+	})
+}
+
+type CollectionResource struct {
+	Resource db.Resource
+	Status   db.Status
+	Tags     []db.Tag
+}
+
+type FullCollection struct {
+	Collection db.Collection
+	Resources  []CollectionResource
+}
+
+func (rs *ResourceService) GetCollection(id int64) (db.Collection, error) {
+	return rs.store.GetCollection(context.Background(), id)
+}
+
+func (rs *ResourceService) GetCollections() ([]FullCollection, error) {
+	ctx := context.Background()
+
+	colls, _ := rs.store.GetCollections(ctx)
+	collIds := make([]int64, len(colls))
+	for i, c := range colls {
+		collIds[i] = c.ID
+	}
+
+	rsrcs, _ := rs.store.GetCollectionsResources(ctx, collIds)
+	rsrcIds := make([]int64, len(rsrcs))
+	for i, r := range rsrcs {
+		rsrcIds[i] = r.Resource.ID
+	}
+
+	tags, _ := rs.store.GetResourcesTags(ctx, rsrcIds)
+	tagsMap := make(map[int64][]db.Tag)
+	for _, t := range tags {
+		tagsMap[t.ResourceID] = append(tagsMap[t.ResourceID], t.Tag)
+	}
+
+	rsrcsMap := make(map[int64][]CollectionResource)
+	for _, r := range rsrcs {
+		cr := CollectionResource{
+			Resource: r.Resource,
+			Status:   r.Status,
+			Tags:     tagsMap[r.Resource.ID],
+		}
+		rsrcsMap[r.CollectionID] = append(rsrcsMap[r.CollectionID], cr)
+	}
+
+	result := make([]FullCollection, len(colls))
+	for i, c := range colls {
+		fc := FullCollection{
+			Collection: c,
+			Resources:  rsrcsMap[c.ID],
+		}
+		result[i] = fc
+	}
+
+	return result, nil
 }

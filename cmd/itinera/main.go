@@ -46,9 +46,9 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
-	mux.HandleFunc("GET /", resourceHandler.Page)
+	mux.HandleFunc("GET /", resourceHandler.ResourcesPage)
 
-	mux.HandleFunc("GET /resources", resourceHandler.Page)
+	mux.HandleFunc("GET /resources", resourceHandler.ResourcesPage)
 	mux.HandleFunc("POST /resources", resourceHandler.Create)
 
 	mux.HandleFunc("GET /resources/{id}/edit", resourceHandler.EditPage)
@@ -70,11 +70,16 @@ func main() {
 	mux.HandleFunc("POST /tags/{id}/edit", resourceHandler.EditTag)
 	mux.HandleFunc("DELETE /tags/{id}", resourceHandler.DeleteTag)
 
-	mux.HandleFunc("GET /statuses/{id}", resourceHandler.GetStatusEdit)
+	mux.HandleFunc("GET /statuses/{id}", resourceHandler.GetStatus)
 	mux.HandleFunc("GET /statuses/{id}/edit", resourceHandler.GetStatusEdit)
 	mux.HandleFunc("POST /statuses", resourceHandler.CreateStatus)
 	mux.HandleFunc("POST /statuses/{id}/edit", resourceHandler.EditStatus)
 	mux.HandleFunc("DELETE /statuses/{id}", resourceHandler.DeleteStatus)
+
+	mux.HandleFunc("GET /collections", resourceHandler.CollectionsPage)
+	mux.HandleFunc("GET /collections/{collection_id}", resourceHandler.Collection)
+	mux.HandleFunc("GET /collections/{collection_id}/edit", resourceHandler.CollectionEdit)
+	mux.HandleFunc("POST /collections", resourceHandler.CollectionCreate)
 
 	fmt.Printf("listening on %s\n", *port)
 	if err := http.ListenAndServe(":"+*port, mux); err != nil {

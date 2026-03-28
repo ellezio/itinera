@@ -5,22 +5,118 @@ import "github.com/ellezio/itinera/internal/resource"
 import "github.com/ellezio/itinera/internal/db"
 import "fmt"
 
-templ Page(rsrcs []resource.FullResource, tags []db.Tag, statuses []db.Status) {
-	@layouts.Base("Resources") {
+type PageParams struct {
+	Title    string
+	Location string
+	Tags     []db.Tag
+	Statuses []db.Status
+}
+
+type ResourcesPageParams struct {
+	PageParams PageParams
+	Resources  []resource.FullResource
+}
+
+type CollectionsPageParams struct {
+	PageParams  PageParams
+	Collections []resource.FullCollection
+}
+
+templ ResourcesPage(params ResourcesPageParams) {
+	@Page(params.PageParams) {
+		<div>
+			<button
+				class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer"
+				hx-get="/resources/0/edit"
+				hx-swap="none"
+			>+ Add</button>
+		</div>
+		@ListResourcesCards(params.Resources)
+	}
+}
+
+templ CollectionsPage(params CollectionsPageParams) {
+	@Page(params.PageParams) {
+		<div>
+			<button
+				class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer"
+				hx-get="/collections/0/edit"
+				hx-target="#page-content"
+			>+ Add</button>
+		</div>
+		@ListCollectionsCards(params.Collections)
+	}
+}
+
+templ ListCollectionsCards(colls []resource.FullCollection) {
+	<div
+		id="collections-cards-list"
+		hx-swap-oob="beforeend"
+		class="pt-4 flex flex-wrap gap-3 content-start"
+	>
+		for _, coll := range colls {
+			@CollectionCard(coll)
+		}
+	</div>
+}
+
+templ CollectionCard(coll resource.FullCollection) {
+	<div
+		id={ fmt.Sprintf("collection-card-%d", coll.Collection.ID) }
+		class="border border-bg-3 hover:border-bg-4 w-80 rounded-md overflow-hidden h-fit"
+		hx-get={ fmt.Sprintf("/collections/%d", coll.Collection.ID) }
+		hx-trigger="click"
+		hx-target="#page-content"
+		hx-swap-oob="true"
+	>
+		<div class="h-36 bg-bg-1 px-3 py-2 flex flex-col gap-2">
+			<div>
+				<div class="text-lg">{ coll.Collection.Title }</div>
+				<div class="text-xs text-fg-4">{ len(coll.Resources) } resources</div>
+			</div>
+			<div class="text-sm text-fg-2">{ coll.Collection.Description.String }</div>
+		</div>
+	</div>
+}
+
+templ CollectionEdit() {
+	<form
+		class="bg-bg-1 rounded-sm flex flex-col p-4 gap-1"
+		hx-post="/collections"
+		hx-swap="outerHTML"
+	>
+		<input name="title" placeholder="title" class="bg-bg-0"/>
+		<textarea name="description" placeholder="description" class="bg-bg-0"></textarea>
+		<div class="flex gap-1">
+			<input
+				type="submit"
+				class="text-fg-0 bg-aqua-0/30 hover:bg-aqua-0/50 border border-aqua-1 rounded-sm flex-1 text-sm cursor-pointer"
+				value="Save"
+			/>
+			<a
+				class="text-fg-0 bg-red-0/30 hover:bg-red-0/50 border border-red-1 rounded-sm flex-1 text-sm cursor-pointer text-center"
+				href="/collections"
+			>Cancel</a>
+		</div>
+	</form>
+}
+
+templ CollectionView(coll db.Collection) {
+	<div class="bg-bg-1 rounded-sm flex flex-col p-4 gap-1">
+		<div name="title" placeholder="title" class="text-fg-0 text-lg">{ coll.Title }</div>
+		<div name="description" placeholder="description" class="text-fg-4 text-xs">{ coll.Description.String }</div>
+	</div>
+}
+
+templ Page(params PageParams) {
+	@layouts.Base(params.Title) {
 		<div class="text-fg-1 h-screen flex flex-col">
-			@TopNav()
+			@TopNav(params.Location)
 			<div class="flex flex-1 overflow-hidden">
-				@SideNav(tags, statuses)
+				@SideNav(params.Tags, params.Statuses)
 				<div id="pane-container" class="flex h-full flex-1">
 					<div id="page-content" class="p-4 flex-1 overflow-y-scroll scrollbar">
-						<div>
-							<button
-								class="border border-bg-3 px-3 py-1 rounded-xl hover:bg-bg-2 cursor-pointer"
-								hx-get="/resources/0/edit"
-								hx-swap="none"
-							>+ Add</button>
-						</div>
-						@ListResourcesCards(rsrcs)
+						{ children... }
 					</div>
 					<div id="pane-divider" class="w-1.5 bg-bg-2 cursor-col-resize"></div>
 					<div id="pane" class="w-xl">
@@ -69,12 +165,18 @@ templ Page(rsrcs []resource.FullResource, tags []db.Tag, statuses []db.Status) {
 	}
 }
 
-templ TopNav() {
+templ TopNav(location string) {
 	<div id="top-nav" class="py-3 px-4 bg-bg-1 border-b-2 border-b-bg-2 flex gap-5 items-center">
 		<div class="tracking-wider">ITINERA</div>
 		<div class="flex gap-2">
-			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer bg-bg-2">resources</div>
-			<div class="text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer">collection</div>
+			<a
+				class={ "text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer", templ.KV("bg-bg-2", location == "resources") }
+				href="/resources"
+			>resources</a>
+			<a
+				class={ "text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer", templ.KV("bg-bg-2", location == "collections") }
+				href="/collections"
+			>collection</a>
 		</div>
 	</div>
 }

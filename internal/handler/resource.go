@@ -20,29 +20,118 @@ func NewResourceHandler(resourceService *resource.ResourceService) *ResourceHand
 	return &ResourceHandler{resourceService}
 }
 
-func (rh *ResourceHandler) Page(w http.ResponseWriter, r *http.Request) {
-	resources, err := rh.resources.GetAll()
-	if err != nil {
-		slog.Error(err.Error())
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
+func (rh *ResourceHandler) GetCommonPageData() ([]db.Tag, []db.Status, error) {
 	tags, err := rh.resources.GetTags()
 	if err != nil {
-		slog.Error(err.Error())
-		http.Error(w, "", http.StatusInternalServerError)
-		return
+		return nil, nil, err
 	}
 
 	statuses, err := rh.resources.GetStatuses()
 	if err != nil {
+		return nil, nil, err
+	}
+
+	return tags, statuses, nil
+}
+
+func (rh *ResourceHandler) ResourcesPage(w http.ResponseWriter, r *http.Request) {
+	tags, statuses, err := rh.GetCommonPageData()
+	if err != nil {
 		slog.Error(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	resourceView.Page(resources, tags, statuses).Render(r.Context(), w)
+	rsrcs, err := rh.resources.GetAll()
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	params := resourceView.ResourcesPageParams{
+		PageParams: resourceView.PageParams{
+			Title:    "Resources",
+			Location: "resources",
+			Tags:     tags,
+			Statuses: statuses,
+		},
+		Resources: rsrcs,
+	}
+
+	resourceView.ResourcesPage(params).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) CollectionsPage(w http.ResponseWriter, r *http.Request) {
+	tags, statuses, err := rh.GetCommonPageData()
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	colls, err := rh.resources.GetCollections()
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	params := resourceView.CollectionsPageParams{
+		PageParams: resourceView.PageParams{
+			Title:    "Collections",
+			Location: "collections",
+			Tags:     tags,
+			Statuses: statuses,
+		},
+		Collections: colls,
+	}
+	resourceView.CollectionsPage(params).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) CollectionEdit(w http.ResponseWriter, r *http.Request) {
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	if collID > 0 {
+		http.Error(w, "", http.StatusNotImplemented)
+		return
+	}
+
+	resourceView.CollectionEdit().Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) CollectionCreate(w http.ResponseWriter, r *http.Request) {
+	title := r.FormValue("title")
+	desc := r.FormValue("description")
+
+	coll, err := rh.resources.CreateCollection(title, desc)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.CollectionView(coll).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) Collection(w http.ResponseWriter, r *http.Request) {
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	if collID <= 0 {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+
+	coll, err := rh.resources.GetCollection(collID)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.CollectionView(coll).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Create(w http.ResponseWriter, r *http.Request) {

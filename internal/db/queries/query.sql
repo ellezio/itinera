@@ -111,7 +111,6 @@ INSERT INTO statuses (
 )
 RETURNING *;
 
-
 -- name: GetTag :one
 SELECT * FROM tags
 WHERE id=?;
@@ -135,3 +134,30 @@ DELETE FROM statuses WHERE id=?;
 
 -- name: DeleteTag :exec
 DELETE FROM tags WHERE id=?;
+
+-- name: CreateCollection :one
+INSERT INTO collections (
+  title, description
+) VALUES (
+  ?, ?
+)
+RETURNING *;
+
+-- name: GetCollection :one
+SELECT * FROM collections
+WHERE id=?;
+
+-- name: GetCollections :many
+SELECT * FROM collections;
+
+-- name: GetCollectionResources :many
+SELECT sqlc.embed(r), sqlc.embed(s) FROM collection_resources cr
+JOIN resources r ON cr.resource_id = r.id
+JOIN statuses s ON r.status_id = s.id
+WHERE cr.collection_id=?;
+
+-- name: GetCollectionsResources :many
+SELECT cr.collection_id, sqlc.embed(r), sqlc.embed(s) FROM collection_resources cr
+JOIN resources r ON cr.resource_id = r.id
+JOIN statuses s ON r.status_id = s.id
+WHERE cr.collection_id in sqlc.slice('collections');
