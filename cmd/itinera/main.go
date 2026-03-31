@@ -56,9 +56,9 @@ func main() {
 	mux.HandleFunc("POST /resources/{id}/status", resourceHandler.ChangeStatus)
 
 	mux.HandleFunc("GET /resources/{resource_id}/notes/{note_id}/edit", resourceHandler.ResourceNoteEditBox)
-	mux.HandleFunc("GET /resources/{resource_id}/notes/{note_id}", resourceHandler.GetResourceNote)
+	mux.HandleFunc("GET /resources/{resource_id}/notes/{note_id}", resourceHandler.GetNote)
 	mux.HandleFunc("POST /resources/{resource_id}/notes/{note_id}", resourceHandler.EditResourceNote)
-	mux.HandleFunc("DELETE /resources/{resource_id}/notes/{note_id}", resourceHandler.DeleteResourceNote)
+	mux.HandleFunc("DELETE /resources/{resource_id}/notes/{note_id}", resourceHandler.DeleteNote)
 
 	mux.HandleFunc("GET /resources/{id}", resourceHandler.Info)
 	mux.HandleFunc("POST /resources/{id}", resourceHandler.Edit)
@@ -83,6 +83,12 @@ func main() {
 	mux.HandleFunc("POST /collections/{collection_id}", resourceHandler.CollectionUpdate)
 	mux.HandleFunc("GET /collections/{collection_id}/cancel", resourceHandler.CollectionCancel)
 	mux.HandleFunc("DELETE /collections/{collection_id}", resourceHandler.CollectionDelete)
+
+	mux.HandleFunc("GET /collections/{collection_id}/notes", resourceHandler.CollectionNotes)
+	mux.HandleFunc("GET /collections/{collection_id}/notes/{note_id}/edit", resourceHandler.CollectionNoteEditBox)
+	mux.HandleFunc("GET /collections/{collection_id}/notes/{note_id}", resourceHandler.GetNote)
+	mux.HandleFunc("POST /collections/{collection_id}/notes/{note_id}", resourceHandler.EditCollectionNote)
+	mux.HandleFunc("DELETE /collections/{collection_id}/notes/{note_id}", resourceHandler.DeleteNote)
 
 	mux.HandleFunc("GET /resources-add-list/{collection_id}", resourceHandler.ResourcesAddList)
 	mux.HandleFunc("POST /collections/{collection_id}/resources/{resource_id}/add", resourceHandler.AddResourceToCollection)

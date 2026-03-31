@@ -177,6 +177,62 @@ func (rh *ResourceHandler) CollectionCancel(w http.ResponseWriter, r *http.Reque
 	resourceView.CollectionInfoTop(coll.Collection).Render(r.Context(), w)
 }
 
+func (rh *ResourceHandler) CollectionNotes(w http.ResponseWriter, r *http.Request) {
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	notes, err := rh.resources.GetCollectionNotes(collID)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.CollectionNotes(collID, notes).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) CollectionNoteEditBox(w http.ResponseWriter, r *http.Request) {
+	noteID_str := r.PathValue("note_id")
+	noteID, _ := strconv.ParseInt(noteID_str, 10, 64)
+
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	note := db.Note{EntityType: "collection", EntityID: collID}
+	if noteID > 0 {
+		var err error
+		note, err = rh.resources.GetNote(noteID)
+		if err != nil {
+			slog.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	resourceView.Note(note, true).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) EditCollectionNote(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	noteID_str := r.PathValue("note_id")
+	noteID, _ := strconv.ParseInt(noteID_str, 10, 64)
+
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	title := r.FormValue("title")
+	content := r.FormValue("content")
+
+	var note db.Note
+	if noteID > 0 {
+		note, _ = rh.resources.UpdateNote(noteID, title, content)
+	} else {
+		note, _ = rh.resources.AddNote(title, content, collID, "collection")
+	}
+	resourceView.Note(note, false).Render(r.Context(), w)
+}
+
 func (rh *ResourceHandler) Collection(w http.ResponseWriter, r *http.Request) {
 	collID_str := r.PathValue("collection_id")
 	collID, _ := strconv.ParseInt(collID_str, 10, 64)
@@ -385,7 +441,7 @@ func (rh *ResourceHandler) ResourceNoteEditBox(w http.ResponseWriter, r *http.Re
 	resourceView.Note(note, true).Render(r.Context(), w)
 }
 
-func (rh *ResourceHandler) GetResourceNote(w http.ResponseWriter, r *http.Request) {
+func (rh *ResourceHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 	noteID_str := r.PathValue("note_id")
 	noteID, _ := strconv.ParseInt(noteID_str, 10, 64)
 
@@ -414,12 +470,12 @@ func (rh *ResourceHandler) EditResourceNote(w http.ResponseWriter, r *http.Reque
 	if noteID > 0 {
 		note, _ = rh.resources.UpdateNote(noteID, title, content)
 	} else {
-		note, _ = rh.resources.AddNote(title, content, resourceID)
+		note, _ = rh.resources.AddNote(title, content, resourceID, "resource")
 	}
 	resourceView.Note(note, false).Render(r.Context(), w)
 }
 
-func (rh *ResourceHandler) DeleteResourceNote(w http.ResponseWriter, r *http.Request) {
+func (rh *ResourceHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	noteID_str := r.PathValue("note_id")
 	noteID, _ := strconv.ParseInt(noteID_str, 10, 64)
 

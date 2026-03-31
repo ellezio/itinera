@@ -178,3 +178,7 @@ RETURNING *;
 
 -- name: DeleteCollection :exec
 DELETE FROM collections WHERE id=?;
+
+-- name: GetCollectionNotes :many
+SELECT * FROM notes
+WHERE entity_type='collection' AND entity_id=?;

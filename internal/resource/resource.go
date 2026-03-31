@@ -148,14 +148,14 @@ func (rs *ResourceService) GetResource(id int64) (FullResource, error) {
 	return resource, nil
 }
 
-func (rs *ResourceService) AddNote(title, content string, resourceID int64) (db.Note, error) {
+func (rs *ResourceService) AddNote(title, content string, entityID int64, entityType string) (db.Note, error) {
 	return rs.store.CreateNote(
 		context.Background(),
 		db.CreateNoteParams{
 			Title:      title,
 			Content:    content,
-			EntityID:   resourceID,
-			EntityType: "resource",
+			EntityID:   entityID,
+			EntityType: entityType,
 		},
 	)
 }
@@ -359,4 +359,8 @@ func (rs *ResourceService) UpdateCollection(collectionID int64, title, desc stri
 
 func (rs *ResourceService) DeleteCollection(collectionID int64) error {
 	return rs.store.DeleteCollection(context.Background(), collectionID)
+}
+
+func (rs *ResourceService) GetCollectionNotes(collectionID int64) ([]db.Note, error) {
+	return rs.store.GetCollectionNotes(context.Background(), collectionID)
 }

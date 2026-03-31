@@ -228,6 +228,40 @@ func (q *Queries) GetCollection(ctx context.Context, id int64) (Collection, erro
 	return i, err
 }
 
+const getCollectionNotes = `-- name: GetCollectionNotes :many
+SELECT id, title, content, entity_id, entity_type FROM notes
+WHERE entity_type='collection' AND entity_id=?
+`
+
+func (q *Queries) GetCollectionNotes(ctx context.Context, entityID int64) ([]Note, error) {
+	rows, err := q.db.QueryContext(ctx, getCollectionNotes, entityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Note
+	for rows.Next() {
+		var i Note
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Content,
+			&i.EntityID,
+			&i.EntityType,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCollectionResources = `-- name: GetCollectionResources :many
 SELECT r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name, s.color FROM collection_resources cr
 JOIN resources r ON cr.resource_id = r.id
