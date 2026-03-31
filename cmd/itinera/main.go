@@ -80,6 +80,11 @@ func main() {
 	mux.HandleFunc("GET /collections/{collection_id}", resourceHandler.Collection)
 	mux.HandleFunc("GET /collections/{collection_id}/edit", resourceHandler.CollectionEdit)
 	mux.HandleFunc("POST /collections", resourceHandler.CollectionCreate)
+	mux.HandleFunc("POST /collections/{collection_id}", resourceHandler.CollectionUpdate)
+	mux.HandleFunc("GET /collections/{collection_id}/cancel", resourceHandler.CollectionCancel)
+
+	mux.HandleFunc("GET /resources-add-list/{collection_id}", resourceHandler.ResourcesAddList)
+	mux.HandleFunc("POST /collections/{collection_id}/resources/{resource_id}/add", resourceHandler.AddResourceToCollection)
 
 	fmt.Printf("listening on %s\n", *port)
 	if err := http.ListenAndServe(":"+*port, mux); err != nil {

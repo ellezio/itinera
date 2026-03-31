@@ -160,4 +160,18 @@ WHERE cr.collection_id=?;
 SELECT cr.collection_id, sqlc.embed(r), sqlc.embed(s) FROM collection_resources cr
 JOIN resources r ON cr.resource_id = r.id
 JOIN statuses s ON r.status_id = s.id
-WHERE cr.collection_id in sqlc.slice('collections');
+WHERE cr.collection_id IN (sqlc.slice('collections'));
+
+-- name: AddResourceToCollection :exec
+INSERT INTO collection_resources (
+  collection_id, resource_id
+) VALUES (
+  ?, ?
+);
+
+-- name: UpdateCollection :one
+UPDATE collections SET
+title=?,
+description=?
+WHERE id=?
+RETURNING *;

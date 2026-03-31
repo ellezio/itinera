@@ -267,8 +267,36 @@ type FullCollection struct {
 	Resources  []CollectionResource
 }
 
-func (rs *ResourceService) GetCollection(id int64) (db.Collection, error) {
-	return rs.store.GetCollection(context.Background(), id)
+func (rs *ResourceService) MakeFullCollection(coll db.Collection) (FullCollection, error) {
+	ctx := context.Background()
+	rsrcs, _ := rs.store.GetCollectionResources(ctx, coll.ID)
+	rsrcIds := make([]int64, len(rsrcs))
+	for i, r := range rsrcs {
+		rsrcIds[i] = r.Resource.ID
+	}
+
+	tags, _ := rs.store.GetResourcesTags(ctx, rsrcIds)
+	tagsMap := make(map[int64][]db.Tag)
+	for _, t := range tags {
+		tagsMap[t.ResourceID] = append(tagsMap[t.ResourceID], t.Tag)
+	}
+
+	collRsrcs := make([]CollectionResource, len(rsrcs))
+	for i, r := range rsrcs {
+		cr := CollectionResource{
+			Resource: r.Resource,
+			Status:   r.Status,
+			Tags:     tagsMap[r.Resource.ID],
+		}
+		collRsrcs[i] = cr
+	}
+
+	return FullCollection{Collection: coll, Resources: collRsrcs}, nil
+}
+
+func (rs *ResourceService) GetCollection(id int64) (FullCollection, error) {
+	coll, _ := rs.store.GetCollection(context.Background(), id)
+	return rs.MakeFullCollection(coll)
 }
 
 func (rs *ResourceService) GetCollections() ([]FullCollection, error) {
@@ -312,4 +340,19 @@ func (rs *ResourceService) GetCollections() ([]FullCollection, error) {
 	}
 
 	return result, nil
+}
+
+func (rs *ResourceService) AddToCollection(collectionID, resourceID int64) error {
+	return rs.store.AddResourceToCollection(
+		context.Background(),
+		db.AddResourceToCollectionParams{CollectionID: collectionID, ResourceID: resourceID},
+	)
+}
+
+func (rs *ResourceService) UpdateCollection(collectionID int64, title, desc string) (db.Collection, error) {
+	return rs.store.UpdateCollection(context.Background(), db.UpdateCollectionParams{
+		ID:          collectionID,
+		Title:       title,
+		Description: sql.NullString{String: desc, Valid: desc != ""},
+	})
 }

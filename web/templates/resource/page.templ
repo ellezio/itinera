@@ -31,7 +31,7 @@ templ ResourcesPage(params ResourcesPageParams) {
 				hx-swap="none"
 			>+ Add</button>
 		</div>
-		@ListResourcesCards(params.Resources)
+		@ListResourcesCards(params.Resources, false)
 	}
 }
 
@@ -79,14 +79,20 @@ templ CollectionCard(coll resource.FullCollection) {
 	</div>
 }
 
-templ CollectionEdit() {
+templ CollectionEdit(coll db.Collection) {
+	{{ isEdit := coll.ID > 0 }}
 	<form
+		id="collection-edit-form"
 		class="bg-bg-1 rounded-sm flex flex-col p-4 gap-1"
-		hx-post="/collections"
+		if isEdit {
+			hx-post={ fmt.Sprintf("/collections/%d", coll.ID) }
+		} else {
+			hx-post="/collections"
+		}
 		hx-swap="outerHTML"
 	>
-		<input name="title" placeholder="title" class="bg-bg-0"/>
-		<textarea name="description" placeholder="description" class="bg-bg-0"></textarea>
+		<input name="title" placeholder="title" class="bg-bg-0" value={ coll.Title }/>
+		<textarea name="description" placeholder="description" class="bg-bg-0">{ coll.Description.String }</textarea>
 		<div class="flex gap-1">
 			<input
 				type="submit"
@@ -95,16 +101,72 @@ templ CollectionEdit() {
 			/>
 			<a
 				class="text-fg-0 bg-red-0/30 hover:bg-red-0/50 border border-red-1 rounded-sm flex-1 text-sm cursor-pointer text-center"
-				href="/collections"
+				if isEdit {
+					hx-get={ fmt.Sprintf("/collections/%d/cancel", coll.ID) }
+					hx-target="#collection-edit-form"
+					hx-swap="outerHTML"
+				} else {
+					href="/collections"
+				}
 			>Cancel</a>
 		</div>
 	</form>
 }
 
-templ CollectionView(coll db.Collection) {
-	<div class="bg-bg-1 rounded-sm flex flex-col p-4 gap-1">
+templ CollectionView(coll resource.FullCollection) {
+	{{
+		list := make([]resource.FullResource, len(coll.Resources))
+		for i, r := range coll.Resources {
+			list[i] = resource.FullResource{
+				Resource: r.Resource,
+				Status:   r.Status,
+				Tags:     r.Tags,
+				Notes:    nil,
+			}
+		}
+	}}
+	<div class="flex flex-col gap-4">
+		@CollectionInfoTop(coll.Collection)
+		<div class="flex justify-between">
+			<div class="my-auto">{ len(coll.Resources) } resources</div>
+			<div
+				class="border border-bg-3 px-4 py-2 rounded-xl hover:bg-bg-2 cursor-pointer"
+				hx-get={ fmt.Sprintf("/resources-add-list/%d", coll.Collection.ID) }
+				hx-target="#resource-info-pane"
+			>+ add resources</div>
+		</div>
+		@ListResourcesCards(list, false)
+	</div>
+}
+
+templ CollectionInfoTop(coll db.Collection) {
+	<div
+		class="bg-bg-1 rounded-sm flex flex-col p-4 gap-1"
+		hx-trigger="dblclick"
+		hx-get={ fmt.Sprintf("/collections/%d/edit", coll.ID) }
+		hx-swap="outerHTML"
+	>
 		<div name="title" placeholder="title" class="text-fg-0 text-lg">{ coll.Title }</div>
 		<div name="description" placeholder="description" class="text-fg-4 text-xs">{ coll.Description.String }</div>
+	</div>
+}
+
+templ SideAddCollectionResources(collectionID int64, rsrcs []resource.FullResource) {
+	<div class="w-full">
+		for _, r := range rsrcs {
+			<div class="border-b border-b-bg-3 w-full">
+				@SideResourceItem(collectionID, r)
+			</div>
+		}
+	</div>
+}
+
+templ SideResourceItem(collectionID int64, rsrc resource.FullResource) {
+	<div
+		class="px-1 py-2 hover:bg-bg-2 cursor-pointer"
+		hx-post={ fmt.Sprintf("/collections/%d/resources/%d/add", collectionID, rsrc.Resource.ID) }
+	>
+		<div>{ rsrc.Resource.Title } | { rsrc.Status.Name }</div>
 	</div>
 }
 
@@ -222,14 +284,16 @@ templ SideNavTagList(tags []db.Tag) {
 	</div>
 }
 
-templ ListResourcesCards(rsrcs []resource.FullResource) {
+templ ListResourcesCards(rsrcs []resource.FullResource, oob bool) {
 	<div
 		id="resources-cards-list"
-		hx-swap-oob="beforeend"
+		if oob {
+			hx-swap-oob="beforeend"
+		}
 		class="pt-4 flex flex-wrap gap-3 content-start"
 	>
 		for _, rsrc := range rsrcs {
-			@Card(rsrc)
+			@Card(rsrc, oob)
 		}
 	</div>
 }
@@ -341,14 +405,16 @@ templ ListItem(id int64, text, mark, color string, count int) {
 	</div>
 }
 
-templ Card(rsrc resource.FullResource) {
+templ Card(rsrc resource.FullResource, oob bool) {
 	<div
 		id={ fmt.Sprintf("resource-card-%d", rsrc.Resource.ID) }
 		class="border border-bg-3 hover:border-bg-4 w-80 rounded-md overflow-hidden h-fit"
 		hx-get={ fmt.Sprintf("/resources/%d", rsrc.Resource.ID) }
 		hx-trigger="click"
 		hx-swap="none"
-		hx-swap-oob="true"
+		if oob {
+			hx-swap-oob="true"
+		}
 	>
 		<div class="min-h-fit h-24 bg-bg-2"></div>
 		<div class="h-36 bg-bg-1 border-t border-t-bg-3 px-3 py-2 flex flex-col gap-2">

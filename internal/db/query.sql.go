@@ -11,6 +11,24 @@ import (
 	"strings"
 )
 
+const addResourceToCollection = `-- name: AddResourceToCollection :exec
+INSERT INTO collection_resources (
+  collection_id, resource_id
+) VALUES (
+  ?, ?
+)
+`
+
+type AddResourceToCollectionParams struct {
+	CollectionID int64
+	ResourceID   int64
+}
+
+func (q *Queries) AddResourceToCollection(ctx context.Context, arg AddResourceToCollectionParams) error {
+	_, err := q.db.ExecContext(ctx, addResourceToCollection, arg.CollectionID, arg.ResourceID)
+	return err
+}
+
 const clearTags = `-- name: ClearTags :exec
 DELETE FROM resource_tags
 WHERE resource_id = ?
@@ -276,7 +294,7 @@ const getCollectionsResources = `-- name: GetCollectionsResources :many
 SELECT cr.collection_id, r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name, s.color FROM collection_resources cr
 JOIN resources r ON cr.resource_id = r.id
 JOIN statuses s ON r.status_id = s.id
-WHERE cr.collection_id in /*SLICE:collections*/?
+WHERE cr.collection_id IN (/*SLICE:collections*/?)
 `
 
 type GetCollectionsResourcesRow struct {
@@ -693,6 +711,27 @@ type SetTagParams struct {
 func (q *Queries) SetTag(ctx context.Context, arg SetTagParams) error {
 	_, err := q.db.ExecContext(ctx, setTag, arg.ResourceID, arg.TagID)
 	return err
+}
+
+const updateCollection = `-- name: UpdateCollection :one
+UPDATE collections SET
+title=?,
+description=?
+WHERE id=?
+RETURNING id, title, description
+`
+
+type UpdateCollectionParams struct {
+	Title       string
+	Description sql.NullString
+	ID          int64
+}
+
+func (q *Queries) UpdateCollection(ctx context.Context, arg UpdateCollectionParams) (Collection, error) {
+	row := q.db.QueryRowContext(ctx, updateCollection, arg.Title, arg.Description, arg.ID)
+	var i Collection
+	err := row.Scan(&i.ID, &i.Title, &i.Description)
+	return i, err
 }
 
 const updateNote = `-- name: UpdateNote :one

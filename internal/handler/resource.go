@@ -93,12 +93,18 @@ func (rh *ResourceHandler) CollectionEdit(w http.ResponseWriter, r *http.Request
 	collID_str := r.PathValue("collection_id")
 	collID, _ := strconv.ParseInt(collID_str, 10, 64)
 
+	var coll db.Collection
 	if collID > 0 {
-		http.Error(w, "", http.StatusNotImplemented)
-		return
+		c, err := rh.resources.GetCollection(collID)
+		if err != nil {
+			slog.Error(err.Error())
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		coll = c.Collection
 	}
 
-	resourceView.CollectionEdit().Render(r.Context(), w)
+	resourceView.CollectionEdit(coll).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) CollectionCreate(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +118,44 @@ func (rh *ResourceHandler) CollectionCreate(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	resourceView.CollectionView(coll).Render(r.Context(), w)
+	fcoll, _ := rh.resources.MakeFullCollection(coll)
+	resourceView.CollectionView(fcoll).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) CollectionUpdate(w http.ResponseWriter, r *http.Request) {
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	title := r.FormValue("title")
+	desc := r.FormValue("description")
+
+	coll, err := rh.resources.UpdateCollection(collID, title, desc)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.CollectionInfoTop(coll).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) CollectionCancel(w http.ResponseWriter, r *http.Request) {
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	if collID <= 0 {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+
+	coll, err := rh.resources.GetCollection(collID)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	resourceView.CollectionInfoTop(coll.Collection).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Collection(w http.ResponseWriter, r *http.Request) {
@@ -168,7 +211,7 @@ func (rh *ResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resourceView.ResourceInfoPane(fullRsrc, nil, nil, false).Render(r.Context(), w)
-	resourceView.ListResourcesCards([]resource.FullResource{fullRsrc}).Render(r.Context(), w)
+	resourceView.ListResourcesCards([]resource.FullResource{fullRsrc}, true).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -272,7 +315,7 @@ func (rh *ResourceHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resourceView.ResourceInfoPane(fullRsrc, nil, nil, false).Render(r.Context(), w)
-	resourceView.Card(fullRsrc).Render(r.Context(), w)
+	resourceView.Card(fullRsrc, true).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) Info(w http.ResponseWriter, r *http.Request) {
@@ -551,4 +594,22 @@ func (rh *ResourceHandler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (rh *ResourceHandler) ResourcesAddList(w http.ResponseWriter, r *http.Request) {
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	rsrcs, _ := rh.resources.GetAll()
+	resourceView.SideAddCollectionResources(collID, rsrcs).Render(r.Context(), w)
+}
+
+func (rh *ResourceHandler) AddResourceToCollection(w http.ResponseWriter, r *http.Request) {
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	rsrcID_str := r.PathValue("resource_id")
+	rsrcID, _ := strconv.ParseInt(rsrcID_str, 10, 64)
+
+	_ = rh.resources.AddToCollection(collID, rsrcID)
 }
