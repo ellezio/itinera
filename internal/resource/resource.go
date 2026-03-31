@@ -356,3 +356,7 @@ func (rs *ResourceService) UpdateCollection(collectionID int64, title, desc stri
 		Description: sql.NullString{String: desc, Valid: desc != ""},
 	})
 }
+
+func (rs *ResourceService) DeleteCollection(collectionID int64) error {
+	return rs.store.DeleteCollection(context.Background(), collectionID)
+}

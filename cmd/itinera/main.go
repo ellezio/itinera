@@ -82,6 +82,7 @@ func main() {
 	mux.HandleFunc("POST /collections", resourceHandler.CollectionCreate)
 	mux.HandleFunc("POST /collections/{collection_id}", resourceHandler.CollectionUpdate)
 	mux.HandleFunc("GET /collections/{collection_id}/cancel", resourceHandler.CollectionCancel)
+	mux.HandleFunc("DELETE /collections/{collection_id}", resourceHandler.CollectionDelete)
 
 	mux.HandleFunc("GET /resources-add-list/{collection_id}", resourceHandler.ResourcesAddList)
 	mux.HandleFunc("POST /collections/{collection_id}/resources/{resource_id}/add", resourceHandler.AddResourceToCollection)

@@ -139,6 +139,25 @@ func (rh *ResourceHandler) CollectionUpdate(w http.ResponseWriter, r *http.Reque
 	resourceView.CollectionInfoTop(coll).Render(r.Context(), w)
 }
 
+func (rh *ResourceHandler) CollectionDelete(w http.ResponseWriter, r *http.Request) {
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	if collID <= 0 {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+
+	err := rh.resources.DeleteCollection(collID)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	redirect(w, r, "/collections", http.StatusFound)
+}
+
 func (rh *ResourceHandler) CollectionCancel(w http.ResponseWriter, r *http.Request) {
 	collID_str := r.PathValue("collection_id")
 	collID, _ := strconv.ParseInt(collID_str, 10, 64)

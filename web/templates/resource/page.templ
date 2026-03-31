@@ -146,7 +146,13 @@ templ CollectionInfoTop(coll db.Collection) {
 		hx-get={ fmt.Sprintf("/collections/%d/edit", coll.ID) }
 		hx-swap="outerHTML"
 	>
-		<div name="title" placeholder="title" class="text-fg-0 text-lg">{ coll.Title }</div>
+		<div class="flex">
+			<div name="title" placeholder="title" class="text-fg-0 text-lg flex-1">{ coll.Title }</div>
+			<button
+				class="text-red-1 bg-red-0/10 border border-red-1 rounded-sm px-2 cursor-pointer"
+				hx-delete={ fmt.Sprintf("/collections/%d", coll.ID) }
+			>r</button>
+		</div>
 		<div name="description" placeholder="description" class="text-fg-4 text-xs">{ coll.Description.String }</div>
 	</div>
 }

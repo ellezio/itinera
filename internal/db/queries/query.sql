@@ -175,3 +175,6 @@ title=?,
 description=?
 WHERE id=?
 RETURNING *;
+
+-- name: DeleteCollection :exec
+DELETE FROM collections WHERE id=?;
