@@ -90,8 +90,9 @@ func main() {
 	mux.HandleFunc("POST /collections/{collection_id}/notes/{note_id}", resourceHandler.EditCollectionNote)
 	mux.HandleFunc("DELETE /collections/{collection_id}/notes/{note_id}", resourceHandler.DeleteNote)
 
-	mux.HandleFunc("GET /resources-add-list/{collection_id}", resourceHandler.ResourcesAddList)
+	mux.HandleFunc("GET /resources-edit-list/{collection_id}", resourceHandler.ResourcesEditList)
 	mux.HandleFunc("POST /collections/{collection_id}/resources/{resource_id}/add", resourceHandler.AddResourceToCollection)
+	mux.HandleFunc("DELETE /collections/{collection_id}/resources/{resource_id}", resourceHandler.RemoveResourceFromCollection)
 
 	fmt.Printf("listening on %s\n", *port)
 	if err := http.ListenAndServe(":"+*port, mux); err != nil {

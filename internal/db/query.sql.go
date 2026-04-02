@@ -722,6 +722,20 @@ func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
 	return items, nil
 }
 
+const removeResourceFromCollection = `-- name: RemoveResourceFromCollection :exec
+DELETE FROM collection_resources WHERE resource_id=? AND collection_id=?
+`
+
+type RemoveResourceFromCollectionParams struct {
+	ResourceID   int64
+	CollectionID int64
+}
+
+func (q *Queries) RemoveResourceFromCollection(ctx context.Context, arg RemoveResourceFromCollectionParams) error {
+	_, err := q.db.ExecContext(ctx, removeResourceFromCollection, arg.ResourceID, arg.CollectionID)
+	return err
+}
+
 const setStatus = `-- name: SetStatus :exec
 UPDATE resources
 SET status_id = ?

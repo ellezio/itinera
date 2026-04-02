@@ -671,11 +671,11 @@ func (rh *ResourceHandler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (rh *ResourceHandler) ResourcesAddList(w http.ResponseWriter, r *http.Request) {
+func (rh *ResourceHandler) ResourcesEditList(w http.ResponseWriter, r *http.Request) {
 	collID_str := r.PathValue("collection_id")
 	collID, _ := strconv.ParseInt(collID_str, 10, 64)
 
-	rsrcs, _ := rh.resources.GetAll()
+	rsrcs, _ := rh.resources.GetResourceWithCollectionFlag(collID)
 	resourceView.SideAddCollectionResources(collID, rsrcs).Render(r.Context(), w)
 }
 
@@ -687,4 +687,25 @@ func (rh *ResourceHandler) AddResourceToCollection(w http.ResponseWriter, r *htt
 	rsrcID, _ := strconv.ParseInt(rsrcID_str, 10, 64)
 
 	_ = rh.resources.AddToCollection(collID, rsrcID)
+	rsrc, _ := rh.resources.GetResource(rsrcID)
+
+	resourceView.SideResourceItem(collID, resource.ResourceWithCollectionFlag{
+		InCollection: true,
+		Resource:     rsrc.Resource,
+	}).Render(r.Context(), w)
+}
+func (rh *ResourceHandler) RemoveResourceFromCollection(w http.ResponseWriter, r *http.Request) {
+	collID_str := r.PathValue("collection_id")
+	collID, _ := strconv.ParseInt(collID_str, 10, 64)
+
+	rsrcID_str := r.PathValue("resource_id")
+	rsrcID, _ := strconv.ParseInt(rsrcID_str, 10, 64)
+
+	_ = rh.resources.RemoveFromCollection(collID, rsrcID)
+	rsrc, _ := rh.resources.GetResource(rsrcID)
+
+	resourceView.SideResourceItem(collID, resource.ResourceWithCollectionFlag{
+		InCollection: false,
+		Resource:     rsrc.Resource,
+	}).Render(r.Context(), w)
 }

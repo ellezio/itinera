@@ -131,9 +131,9 @@ templ CollectionView(coll resource.FullCollection) {
 			<div class="my-auto">{ len(coll.Resources) } resources</div>
 			<div
 				class="border border-bg-3 px-4 py-2 rounded-xl hover:bg-bg-2 cursor-pointer"
-				hx-get={ fmt.Sprintf("/resources-add-list/%d", coll.Collection.ID) }
+				hx-get={ fmt.Sprintf("/resources-edit-list/%d", coll.Collection.ID) }
 				hx-target="#resource-info-pane"
-			>+ add resources</div>
+			>+ edit resources</div>
 		</div>
 		@ListResourcesCards(list, false)
 	</div>
@@ -180,7 +180,7 @@ templ CollectionNotes(collectionID int64, notes []db.Note) {
 	</div>
 }
 
-templ SideAddCollectionResources(collectionID int64, rsrcs []resource.FullResource) {
+templ SideAddCollectionResources(collectionID int64, rsrcs []resource.ResourceWithCollectionFlag) {
 	<div class="w-full">
 		for _, r := range rsrcs {
 			<div class="border-b border-b-bg-3 w-full">
@@ -190,12 +190,17 @@ templ SideAddCollectionResources(collectionID int64, rsrcs []resource.FullResour
 	</div>
 }
 
-templ SideResourceItem(collectionID int64, rsrc resource.FullResource) {
+templ SideResourceItem(collectionID int64, rsrc resource.ResourceWithCollectionFlag) {
 	<div
-		class="px-1 py-2 hover:bg-bg-2 cursor-pointer"
-		hx-post={ fmt.Sprintf("/collections/%d/resources/%d/add", collectionID, rsrc.Resource.ID) }
+		class={ "px-1 py-2 cursor-pointer", templ.KV("hover:bg-bg-2", !rsrc.InCollection), templ.KV("bg-aqua-0/20 hover:bg-aqua-0/60", rsrc.InCollection) }
+		hx-swap="outerHTML"
+		if rsrc.InCollection {
+			hx-delete={ fmt.Sprintf("/collections/%d/resources/%d", collectionID, rsrc.Resource.ID) }
+		} else {
+			hx-post={ fmt.Sprintf("/collections/%d/resources/%d/add", collectionID, rsrc.Resource.ID) }
+		}
 	>
-		<div>{ rsrc.Resource.Title } | { rsrc.Status.Name }</div>
+		<div>{ rsrc.Resource.Title } | { rsrc.InCollection }</div>
 	</div>
 }
 

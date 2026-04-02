@@ -182,3 +182,6 @@ DELETE FROM collections WHERE id=?;
 -- name: GetCollectionNotes :many
 SELECT * FROM notes
 WHERE entity_type='collection' AND entity_id=?;
+
+-- name: RemoveResourceFromCollection :exec
+DELETE FROM collection_resources WHERE resource_id=? AND collection_id=?;

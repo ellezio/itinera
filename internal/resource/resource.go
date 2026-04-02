@@ -349,6 +349,13 @@ func (rs *ResourceService) AddToCollection(collectionID, resourceID int64) error
 	)
 }
 
+func (rs *ResourceService) RemoveFromCollection(collectionID, resourceID int64) error {
+	return rs.store.RemoveResourceFromCollection(context.Background(), db.RemoveResourceFromCollectionParams{
+		ResourceID:   resourceID,
+		CollectionID: collectionID,
+	})
+}
+
 func (rs *ResourceService) UpdateCollection(collectionID int64, title, desc string) (db.Collection, error) {
 	return rs.store.UpdateCollection(context.Background(), db.UpdateCollectionParams{
 		ID:          collectionID,
@@ -363,4 +370,31 @@ func (rs *ResourceService) DeleteCollection(collectionID int64) error {
 
 func (rs *ResourceService) GetCollectionNotes(collectionID int64) ([]db.Note, error) {
 	return rs.store.GetCollectionNotes(context.Background(), collectionID)
+}
+
+type ResourceWithCollectionFlag struct {
+	InCollection bool
+	Resource     db.Resource
+}
+
+func (rs *ResourceService) GetResourceWithCollectionFlag(collectionID int64) ([]ResourceWithCollectionFlag, error) {
+	ctx := context.Background()
+	rsrcs, _ := rs.store.GetResources(ctx)
+	collRsrcs, _ := rs.store.GetCollectionResources(ctx, collectionID)
+
+	inColl := make(map[int64]struct{})
+	for _, r := range collRsrcs {
+		inColl[r.Resource.ID] = struct{}{}
+	}
+
+	result := make([]ResourceWithCollectionFlag, len(rsrcs))
+	for i, r := range rsrcs {
+		_, ok := inColl[r.Resource.ID]
+		result[i] = ResourceWithCollectionFlag{
+			InCollection: ok,
+			Resource:     r.Resource,
+		}
+	}
+
+	return result, nil
 }
