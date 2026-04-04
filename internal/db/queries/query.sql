@@ -185,3 +185,11 @@ WHERE entity_type='collection' AND entity_id=?;
 
 -- name: RemoveResourceFromCollection :exec
 DELETE FROM collection_resources WHERE resource_id=? AND collection_id=?;
+
+-- name: FilterReousrces :many
+SELECT sqlc.embed(r), sqlc.embed(s) FROM resources r
+jOIN statuses s ON r.status_id = s.id
+LEFT jOIN resource_tags rt ON r.id = rt.resource_id
+WHERE (? IS NULL OR s.id IN (sqlc.slice('statuses'))) AND (? IS NULL OR rt.tag_id IN (sqlc.slice('tags')))
+GROUP BY r.id
+HAVING @filter_tags IS NULL OR COUNT(DISTINCT rt.tag_id) = @tagsCount;

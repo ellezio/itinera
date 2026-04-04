@@ -216,6 +216,83 @@ func (q *Queries) DeleteTag(ctx context.Context, id int64) error {
 	return err
 }
 
+const filterReousrces = `-- name: FilterReousrces :many
+SELECT r.id, r.title, r.source, r.source_type, r.status_id, s.id, s.name, s.color FROM resources r
+jOIN statuses s ON r.status_id = s.id
+LEFT jOIN resource_tags rt ON r.id = rt.resource_id
+WHERE (? IS NULL OR s.id IN (/*SLICE:statuses*/?)) AND (? IS NULL OR rt.tag_id IN (/*SLICE:tags*/?))
+GROUP BY r.id
+HAVING ? IS NULL OR COUNT(DISTINCT rt.tag_id) = ?
+`
+
+type FilterReousrcesParams struct {
+	Column1    interface{}
+	Statuses   []int64
+	Column3    interface{}
+	Tags       []int64
+	FilterTags interface{}
+	TagsCount  int64
+}
+
+type FilterReousrcesRow struct {
+	Resource Resource
+	Status   Status
+}
+
+func (q *Queries) FilterReousrces(ctx context.Context, arg FilterReousrcesParams) ([]FilterReousrcesRow, error) {
+	query := filterReousrces
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.Column1)
+	if len(arg.Statuses) > 0 {
+		for _, v := range arg.Statuses {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:statuses*/?", strings.Repeat(",?", len(arg.Statuses))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:statuses*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Column3)
+	if len(arg.Tags) > 0 {
+		for _, v := range arg.Tags {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:tags*/?", strings.Repeat(",?", len(arg.Tags))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:tags*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.FilterTags)
+	queryParams = append(queryParams, arg.TagsCount)
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FilterReousrcesRow
+	for rows.Next() {
+		var i FilterReousrcesRow
+		if err := rows.Scan(
+			&i.Resource.ID,
+			&i.Resource.Title,
+			&i.Resource.Source,
+			&i.Resource.SourceType,
+			&i.Resource.StatusID,
+			&i.Status.ID,
+			&i.Status.Name,
+			&i.Status.Color,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCollection = `-- name: GetCollection :one
 SELECT id, title, description FROM collections
 WHERE id=?

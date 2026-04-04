@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"slices"
 	"strconv"
 
 	"github.com/ellezio/itinera/internal/db"
@@ -42,10 +44,32 @@ func (rh *ResourceHandler) ResourcesPage(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	rsrcs, err := rh.resources.GetAll()
+	ftags, fstatuses := prepareFilters(r.URL.Query(), tags, statuses)
+
+	ftagsIds := make([]int64, 0, len(ftags))
+	for _, t := range ftags {
+		if t.Selected {
+			ftagsIds = append(ftagsIds, t.Data.ID)
+		}
+	}
+
+	fstatusesIds := make([]int64, 0, len(fstatuses))
+	for _, s := range fstatuses {
+		if s.Selected {
+			fstatusesIds = append(fstatusesIds, s.Data.ID)
+		}
+	}
+
+	// rsrcs, err := rh.resources.GetAll()
+	rsrcs, err := rh.resources.GetFilteredResources(fstatusesIds, ftagsIds)
 	if err != nil {
 		slog.Error(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	if r.Header.Get("Hx-Request") == "true" {
+		resourceView.ListResourcesCards(rsrcs, false).Render(r.Context(), w)
 		return
 	}
 
@@ -53,8 +77,8 @@ func (rh *ResourceHandler) ResourcesPage(w http.ResponseWriter, r *http.Request)
 		PageParams: resourceView.PageParams{
 			Title:    "Resources",
 			Location: "resources",
-			Tags:     tags,
-			Statuses: statuses,
+			Tags:     ftags,
+			Statuses: fstatuses,
 		},
 		Resources: rsrcs,
 	}
@@ -70,6 +94,8 @@ func (rh *ResourceHandler) CollectionsPage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	ftags, fstatuses := prepareFilters(r.URL.Query(), tags, statuses)
+
 	colls, err := rh.resources.GetCollections()
 	if err != nil {
 		slog.Error(err.Error())
@@ -81,8 +107,8 @@ func (rh *ResourceHandler) CollectionsPage(w http.ResponseWriter, r *http.Reques
 		PageParams: resourceView.PageParams{
 			Title:    "Collections",
 			Location: "collections",
-			Tags:     tags,
-			Statuses: statuses,
+			Tags:     ftags,
+			Statuses: fstatuses,
 		},
 		Collections: colls,
 	}
@@ -499,7 +525,8 @@ func (rh *ResourceHandler) CreateTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceView.SideNavTagList([]db.Tag{tag}).Render(r.Context(), w)
+	ftag := []resourceView.Filter[db.Tag]{{Data: tag, Selected: false}}
+	resourceView.SideNavTagList(ftag).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) CreateStatus(w http.ResponseWriter, r *http.Request) {
@@ -514,7 +541,8 @@ func (rh *ResourceHandler) CreateStatus(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	resourceView.SideNavStatusList([]db.Status{status}).Render(r.Context(), w)
+	fstatus := []resourceView.Filter[db.Status]{{Data: status, Selected: false}}
+	resourceView.SideNavStatusList(fstatus).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) GetStatusEdit(w http.ResponseWriter, r *http.Request) {
@@ -571,7 +599,10 @@ func (rh *ResourceHandler) GetTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, 1).Render(r.Context(), w)
+	currentUrl, _ := url.Parse(r.Header.Get("Hx-Current-Url"))
+	selected := slices.Contains(currentUrl.Query()["tag"], tag.Name)
+
+	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, 1, selected).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
@@ -590,7 +621,10 @@ func (rh *ResourceHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceView.ListItem(status.ID, status.Name, "", status.Color, 1).Render(r.Context(), w)
+	currentUrl, _ := url.Parse(r.Header.Get("Hx-Current-Url"))
+	selected := slices.Contains(currentUrl.Query()["status"], status.Name)
+
+	resourceView.ListItem(status.ID, status.Name, "", status.Color, 1, selected).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) EditTag(w http.ResponseWriter, r *http.Request) {
@@ -613,7 +647,7 @@ func (rh *ResourceHandler) EditTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, 1).Render(r.Context(), w)
+	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, 1, false).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) EditStatus(w http.ResponseWriter, r *http.Request) {
@@ -636,7 +670,7 @@ func (rh *ResourceHandler) EditStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceView.ListItem(status.ID, status.Name, "", status.Color, 1).Render(r.Context(), w)
+	resourceView.ListItem(status.ID, status.Name, "", status.Color, 1, false).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) DeleteStatus(w http.ResponseWriter, r *http.Request) {

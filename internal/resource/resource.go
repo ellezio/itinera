@@ -398,3 +398,56 @@ func (rs *ResourceService) GetResourceWithCollectionFlag(collectionID int64) ([]
 
 	return result, nil
 }
+
+func (rs *ResourceService) GetFilteredResources(statuses []int64, tags []int64) ([]FullResource, error) {
+	ctx := context.Background()
+	// For some reason the unnamed arguments are needed to sql work
+	params := db.FilterReousrcesParams{
+		Column1:    nil, // filter statuses
+		Statuses:   statuses,
+		Column3:    nil, // filter tags
+		Tags:       tags,
+		TagsCount:  int64(len(tags)),
+		FilterTags: nil,
+	}
+	if len(statuses) > 0 {
+		params.Column1 = 1
+	}
+	if len(tags) > 0 {
+		params.Column3 = 1
+		params.FilterTags = 1
+	}
+
+	// NOTE I do not yet if the query is more optimal then filtering it in code but for now it works just fine
+	rows, err := rs.store.FilterReousrces(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]int64, len(rows))
+	for i, row := range rows {
+		ids[i] = row.Resource.ID
+	}
+
+	dbTags, err := rs.store.GetResourcesTags(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	tagMap := make(map[int64][]db.Tag)
+	for _, t := range dbTags {
+		tagMap[t.ResourceID] = append(tagMap[t.ResourceID], t.Tag)
+	}
+
+	resources := make([]FullResource, len(rows))
+	for i, r := range rows {
+		resources[i] = FullResource{
+			Resource: r.Resource,
+			Status:   r.Status,
+			Tags:     tagMap[r.Resource.ID],
+			Notes:    nil,
+		}
+	}
+
+	return resources, nil
+}

@@ -8,8 +8,13 @@ import "fmt"
 type PageParams struct {
 	Title    string
 	Location string
-	Tags     []db.Tag
-	Statuses []db.Status
+	Tags     []Filter[db.Tag]
+	Statuses []Filter[db.Status]
+}
+
+type Filter[T any] struct {
+	Data     T
+	Selected bool
 }
 
 type ResourcesPageParams struct {
@@ -277,8 +282,16 @@ templ TopNav(location string) {
 	</div>
 }
 
-templ SideNav(tags []db.Tag, statuses []db.Status) {
-	<div id="side-nav" class="w-64 h-full bg-bg-1 border-r-2 border-r-bg-2 pt-2">
+templ SideNav(tags []Filter[db.Tag], statuses []Filter[db.Status]) {
+	<form
+		id="side-nav"
+		class="w-64 h-full bg-bg-1 border-r-2 border-r-bg-2 pt-2"
+		hx-get="/resources"
+		hx-swap="outerHTML"
+		hx-target="#resources-cards-list"
+		hx-replace-url="true"
+		hx-trigger="change"
+	>
 		<div class="text-bg-4 px-4 py-1 text-sm tracking-wider flex justify-between">
 			<span>STATUS</span>
 			<button
@@ -299,21 +312,23 @@ templ SideNav(tags []db.Tag, statuses []db.Status) {
 			>+</button>
 		</div>
 		@SideNavTagList(tags)
-	</div>
+	</form>
 }
 
-templ SideNavStatusList(statuses []db.Status) {
+templ SideNavStatusList(statuses []Filter[db.Status]) {
 	<div id="nav-list-statuses" hx-swap-oob="beforeend">
 		for _, s := range statuses {
-			@ListItem(s.ID, s.Name, "", s.Color, 1)
+			<div hx-replace-url="false">
+				@ListItem(s.Data.ID, s.Data.Name, "", s.Data.Color, 1, s.Selected)
+			</div>
 		}
 	</div>
 }
 
-templ SideNavTagList(tags []db.Tag) {
+templ SideNavTagList(tags []Filter[db.Tag]) {
 	<div id="nav-list-tags" hx-swap-oob="beforeend">
 		for _, t := range tags {
-			@ListItem(t.ID, t.Name, "#", t.Color, 1)
+			@ListItem(t.Data.ID, t.Data.Name, "#", t.Data.Color, 1, t.Selected)
 		}
 	</div>
 }
@@ -360,7 +375,9 @@ templ ListItemEdit(id int64, text, kind, color string) {
 		id={ elemID }
 		class="flex justify-center gap-2 flex-col px-4 py-1"
 		hx-post={ hxPost }
+		hx-target="this"
 		hx-swap="outerHTML"
+		hx-push-url="false"
 	>
 		<div class="flex gap-2">
 			<select name="color" class="bg-bg-0">
@@ -416,17 +433,34 @@ templ ListItemEdit(id int64, text, kind, color string) {
 	</form>
 }
 
-templ ListItem(id int64, text, mark, color string, count int) {
-	<div
-		class="flex items-center justify-between w-full px-4 py-1 hover:bg-bg-2 cursor-pointer"
-		hx-trigger="dblclick"
-		hx-swap="outerHTML"
-		if mark == "" {
-			hx-get={ fmt.Sprintf("/statuses/%d/edit", id) }
-		} else {
-			hx-get={ fmt.Sprintf("/tags/%d/edit", id) }
+templ ListItem(id int64, text, mark, color string, count int, selected bool) {
+	{{
+		kind := "status"
+		if mark == "#" {
+			kind = "tag"
+		}
+		elemID := fmt.Sprintf("%s-list-item-%d", kind, id)
+	}}
+	<label
+		id={ elemID }
+		hx-replace-url="false"
+		class={ "hover:bg-bg-3 has-[input:checked]:hover:bg-bg-3 has-[input:checked]:bg-bg-2 flex items-center justify-between w-full px-4 py-1 cursor-pointer" }
+		if kind == "status" {
+			onmousedown="this._wasChecked = this.querySelector('input').checked;"
+			onclick="if(this._wasChecked){this.querySelector('input').checked=false;htmx.trigger(this.closest('form'),'change');}"
 		}
 	>
+		<input
+			if kind == "status" {
+				type="radio"
+			} else {
+				type="checkbox"
+			}
+			checked?={ selected }
+			name={ kind }
+			value={ text }
+			class="hidden"
+		/>
 		<div class="flex items-center gap-2">
 			if mark == "" {
 				<div class={ "w-1.5 h-1.5 rounded-full shrink-0 bg-" + color + "-1" }></div>
@@ -435,8 +469,21 @@ templ ListItem(id int64, text, mark, color string, count int) {
 			}
 			<span class="text-sm">{ text } </span>
 		</div>
-		<div class="bg-bg-2 text-gray-1 rounded-sm px-2 leading-tight text-xs">{ count }</div>
-	</div>
+		<div class="flex items-center gap-2">
+			<div class="h-fit bg-bg-2 text-gray-1 rounded-sm px-2 leading-tight text-xs">{ count }</div>
+			<button
+				class="text-blue-1 border border-blue-1 px-1.5 rounded-sm bg-blue-0/10 hover:bg-blue-0/50 cursor-pointer"
+				if mark == "" {
+					hx-get={ fmt.Sprintf("/statuses/%d/edit", id) }
+				} else {
+					hx-get={ fmt.Sprintf("/tags/%d/edit", id) }
+				}
+				hx-target={ "#" + elemID }
+				hx-swap="outerHTML"
+				onclick="event.stopPropagation()"
+			>e</button>
+		</div>
+	</label>
 }
 
 templ Card(rsrc resource.FullResource, oob bool) {

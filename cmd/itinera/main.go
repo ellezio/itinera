@@ -45,6 +45,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+	mux.Handle("GET /favicon.ico", http.NotFoundHandler())
 
 	mux.HandleFunc("GET /", resourceHandler.ResourcesPage)
 
