@@ -4,6 +4,7 @@ import "github.com/ellezio/itinera/web/templates/layouts"
 import "github.com/ellezio/itinera/internal/resource"
 import "github.com/ellezio/itinera/internal/db"
 import "fmt"
+import "strings"
 
 type PageParams struct {
 	Title    string
@@ -73,6 +74,7 @@ templ CollectionCard(coll resource.FullCollection) {
 		hx-trigger="click"
 		hx-target="#page-content"
 		hx-swap-oob="true"
+		hx-push-url="true"
 	>
 		<div class="h-36 bg-bg-1 px-3 py-2 flex flex-col gap-2">
 			<div>
@@ -214,7 +216,7 @@ templ Page(params PageParams) {
 		<div class="text-fg-1 h-screen flex flex-col">
 			@TopNav(params.Location)
 			<div class="flex flex-1 overflow-hidden">
-				@SideNav(params.Tags, params.Statuses)
+				@SideNav(params.Tags, params.Statuses, params.Location)
 				<div id="pane-container" class="flex h-full flex-1">
 					<div id="page-content" class="p-4 flex-1 overflow-y-scroll scrollbar">
 						{ children... }
@@ -271,24 +273,30 @@ templ TopNav(location string) {
 		<div class="tracking-wider">ITINERA</div>
 		<div class="flex gap-2">
 			<a
-				class={ "text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer", templ.KV("bg-bg-2", location == "resources") }
+				class={ "text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer", templ.KV("bg-bg-2", strings.HasPrefix(location, "resources")) }
 				href="/resources"
 			>resources</a>
 			<a
-				class={ "text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer", templ.KV("bg-bg-2", location == "collections") }
+				class={ "text-fg-0 border border-bg-4 px-3 py-1 rounded-xl hover:bg-bg-0 cursor-pointer", templ.KV("bg-bg-2", strings.HasPrefix(location, "collections")) }
 				href="/collections"
 			>collection</a>
 		</div>
 	</div>
 }
 
-templ SideNav(tags []Filter[db.Tag], statuses []Filter[db.Status]) {
+templ SideNav(tags []Filter[db.Tag], statuses []Filter[db.Status], location string) {
 	<form
 		id="side-nav"
 		class="w-64 h-full bg-bg-1 border-r-2 border-r-bg-2 pt-2"
-		hx-get="/resources"
-		hx-swap="outerHTML"
-		hx-target="#resources-cards-list"
+		hx-swap-oob="outerHTML"
+		hx-get={ "/" + location }
+		if strings.HasPrefix(location, "collections") {
+			hx-target="#page-content"
+			hx-swap="innerHTML"
+		} else {
+			hx-target="#resources-cards-list"
+			hx-swap="outerHTML"
+		}
 		hx-replace-url="true"
 		hx-trigger="change"
 	>
@@ -301,7 +309,7 @@ templ SideNav(tags []Filter[db.Tag], statuses []Filter[db.Status]) {
 				hx-swap="afterbegin"
 			>+</button>
 		</div>
-		@SideNavStatusList(statuses)
+		@SideNavStatusList(statuses, false)
 		<div class="text-bg-4 px-4 pt-4 pb-1 text-sm tracking-wider flex justify-between">
 			<span>TAGS</span>
 			<button
@@ -311,24 +319,34 @@ templ SideNav(tags []Filter[db.Tag], statuses []Filter[db.Status]) {
 				hx-swap="afterbegin"
 			>+</button>
 		</div>
-		@SideNavTagList(tags)
+		@SideNavTagList(tags, false)
 	</form>
 }
 
-templ SideNavStatusList(statuses []Filter[db.Status]) {
-	<div id="nav-list-statuses" hx-swap-oob="beforeend">
+templ SideNavStatusList(statuses []Filter[db.Status], oob bool) {
+	<div
+		id="nav-list-statuses"
+		if oob {
+			hx-swap-oob="beforeend"
+		}
+	>
 		for _, s := range statuses {
 			<div hx-replace-url="false">
-				@ListItem(s.Data.ID, s.Data.Name, "", s.Data.Color, 1, s.Selected)
+				@ListItem(s.Data.ID, s.Data.Name, "", s.Data.Color, s.Selected)
 			</div>
 		}
 	</div>
 }
 
-templ SideNavTagList(tags []Filter[db.Tag]) {
-	<div id="nav-list-tags" hx-swap-oob="beforeend">
+templ SideNavTagList(tags []Filter[db.Tag], oob bool) {
+	<div
+		id="nav-list-tags"
+		if oob {
+			hx-swap-oob="beforeend"
+		}
+	>
 		for _, t := range tags {
-			@ListItem(t.Data.ID, t.Data.Name, "#", t.Data.Color, 1, t.Selected)
+			@ListItem(t.Data.ID, t.Data.Name, "#", t.Data.Color, t.Selected)
 		}
 	</div>
 }
@@ -433,7 +451,7 @@ templ ListItemEdit(id int64, text, kind, color string) {
 	</form>
 }
 
-templ ListItem(id int64, text, mark, color string, count int, selected bool) {
+templ ListItem(id int64, text, mark, color string, selected bool) {
 	{{
 		kind := "status"
 		if mark == "#" {
@@ -470,7 +488,6 @@ templ ListItem(id int64, text, mark, color string, count int, selected bool) {
 			<span class="text-sm">{ text } </span>
 		</div>
 		<div class="flex items-center gap-2">
-			<div class="h-fit bg-bg-2 text-gray-1 rounded-sm px-2 leading-tight text-xs">{ count }</div>
 			<button
 				class="text-blue-1 border border-blue-1 px-1.5 rounded-sm bg-blue-0/10 hover:bg-blue-0/50 cursor-pointer"
 				if mark == "" {

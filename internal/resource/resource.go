@@ -418,7 +418,7 @@ func (rs *ResourceService) GetFilteredResources(statuses []int64, tags []int64) 
 		params.FilterTags = 1
 	}
 
-	// NOTE I do not yet if the query is more optimal then filtering it in code but for now it works just fine
+	// NOTE I don't know yet if the query is more optimal then filtering it in code but for now it works just fine
 	rows, err := rs.store.FilterReousrces(ctx, params)
 	if err != nil {
 		return nil, err
@@ -450,4 +450,63 @@ func (rs *ResourceService) GetFilteredResources(statuses []int64, tags []int64) 
 	}
 
 	return resources, nil
+}
+
+// TODO
+// think about separating the logic as it's simply the same as for GetFilteredResources
+func (rs *ResourceService) GetFilteredCollectionResources(collectionID int64, statuses []int64, tags []int64) (FullCollection, error) {
+	ctx := context.Background()
+	params := db.FilterCollectionResourcesParams{
+		Column1:      nil, // filter statuses
+		Statuses:     statuses,
+		Column3:      nil, // filter tags
+		Tags:         tags,
+		TagsCount:    int64(len(tags)),
+		FilterTags:   nil,
+		CollectionID: collectionID,
+	}
+	if len(statuses) > 0 {
+		params.Column1 = 1
+	}
+	if len(tags) > 0 {
+		params.Column3 = 1
+		params.FilterTags = 1
+	}
+
+	rows, err := rs.store.FilterCollectionResources(ctx, params)
+	if err != nil {
+		return FullCollection{}, err
+	}
+
+	ids := make([]int64, len(rows))
+	for i, row := range rows {
+		ids[i] = row.Resource.ID
+	}
+
+	dbTags, err := rs.store.GetResourcesTags(ctx, ids)
+	if err != nil {
+		return FullCollection{}, err
+	}
+
+	tagMap := make(map[int64][]db.Tag)
+	for _, t := range dbTags {
+		tagMap[t.ResourceID] = append(tagMap[t.ResourceID], t.Tag)
+	}
+
+	resources := make([]CollectionResource, len(rows))
+	for i, r := range rows {
+		resources[i] = CollectionResource{
+			Resource: r.Resource,
+			Status:   r.Status,
+			Tags:     tagMap[r.Resource.ID],
+		}
+	}
+
+	collection, _ := rs.store.GetCollection(ctx, collectionID)
+	fullCollection := FullCollection{
+		Collection: collection,
+		Resources:  resources,
+	}
+
+	return fullCollection, nil
 }

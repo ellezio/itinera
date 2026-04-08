@@ -3,12 +3,14 @@ package handler
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
 	"strconv"
 
+	"github.com/a-h/templ"
 	"github.com/ellezio/itinera/internal/db"
 	"github.com/ellezio/itinera/internal/resource"
 	resourceView "github.com/ellezio/itinera/web/templates/resource"
@@ -268,14 +270,45 @@ func (rh *ResourceHandler) Collection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	coll, err := rh.resources.GetCollection(collID)
+	tags, statuses, _ := rh.GetCommonPageData()
+	ftags, fstatuses := prepareFilters(r.URL.Query(), tags, statuses)
+
+	ftagsIds := make([]int64, 0, len(ftags))
+	for _, t := range ftags {
+		if t.Selected {
+			ftagsIds = append(ftagsIds, t.Data.ID)
+		}
+	}
+
+	fstatusesIds := make([]int64, 0, len(fstatuses))
+	for _, s := range fstatuses {
+		if s.Selected {
+			fstatusesIds = append(fstatusesIds, s.Data.ID)
+		}
+	}
+
+	coll, err := rh.resources.GetFilteredCollectionResources(collID, fstatusesIds, ftagsIds)
 	if err != nil {
 		slog.Error(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	resourceView.CollectionView(coll).Render(r.Context(), w)
+	if r.Header.Get("Hx-Request") == "true" {
+		resourceView.SideNav(ftags, fstatuses, fmt.Sprintf("collections/%d", collID)).Render(r.Context(), w)
+		resourceView.CollectionView(coll).Render(r.Context(), w)
+	} else {
+		params := resourceView.PageParams{
+			Title:    "Collection " + coll.Collection.Title,
+			Location: fmt.Sprintf("collections/%d", collID),
+			Tags:     ftags,
+			Statuses: fstatuses,
+		}
+
+		ctx := templ.WithChildren(r.Context(), resourceView.CollectionView(coll))
+		resourceView.Page(params).Render(ctx, w)
+	}
+
 }
 
 func (rh *ResourceHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -526,7 +559,7 @@ func (rh *ResourceHandler) CreateTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ftag := []resourceView.Filter[db.Tag]{{Data: tag, Selected: false}}
-	resourceView.SideNavTagList(ftag).Render(r.Context(), w)
+	resourceView.SideNavTagList(ftag, true).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) CreateStatus(w http.ResponseWriter, r *http.Request) {
@@ -542,7 +575,7 @@ func (rh *ResourceHandler) CreateStatus(w http.ResponseWriter, r *http.Request) 
 	}
 
 	fstatus := []resourceView.Filter[db.Status]{{Data: status, Selected: false}}
-	resourceView.SideNavStatusList(fstatus).Render(r.Context(), w)
+	resourceView.SideNavStatusList(fstatus, true).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) GetStatusEdit(w http.ResponseWriter, r *http.Request) {
@@ -602,7 +635,7 @@ func (rh *ResourceHandler) GetTag(w http.ResponseWriter, r *http.Request) {
 	currentUrl, _ := url.Parse(r.Header.Get("Hx-Current-Url"))
 	selected := slices.Contains(currentUrl.Query()["tag"], tag.Name)
 
-	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, 1, selected).Render(r.Context(), w)
+	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, selected).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
@@ -624,7 +657,7 @@ func (rh *ResourceHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 	currentUrl, _ := url.Parse(r.Header.Get("Hx-Current-Url"))
 	selected := slices.Contains(currentUrl.Query()["status"], status.Name)
 
-	resourceView.ListItem(status.ID, status.Name, "", status.Color, 1, selected).Render(r.Context(), w)
+	resourceView.ListItem(status.ID, status.Name, "", status.Color, selected).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) EditTag(w http.ResponseWriter, r *http.Request) {
@@ -647,7 +680,7 @@ func (rh *ResourceHandler) EditTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, 1, false).Render(r.Context(), w)
+	resourceView.ListItem(tag.ID, tag.Name, "#", tag.Color, false).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) EditStatus(w http.ResponseWriter, r *http.Request) {
@@ -670,7 +703,7 @@ func (rh *ResourceHandler) EditStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceView.ListItem(status.ID, status.Name, "", status.Color, 1, false).Render(r.Context(), w)
+	resourceView.ListItem(status.ID, status.Name, "", status.Color, false).Render(r.Context(), w)
 }
 
 func (rh *ResourceHandler) DeleteStatus(w http.ResponseWriter, r *http.Request) {

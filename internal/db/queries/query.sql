@@ -193,3 +193,12 @@ LEFT jOIN resource_tags rt ON r.id = rt.resource_id
 WHERE (? IS NULL OR s.id IN (sqlc.slice('statuses'))) AND (? IS NULL OR rt.tag_id IN (sqlc.slice('tags')))
 GROUP BY r.id
 HAVING @filter_tags IS NULL OR COUNT(DISTINCT rt.tag_id) = @tagsCount;
+
+-- name: FilterCollectionResources :many
+SELECT sqlc.embed(r), sqlc.embed(s) FROM resources r
+JOIN collection_resources cr ON r.id = cr.resource_id
+jOIN statuses s ON r.status_id = s.id
+LEFT jOIN resource_tags rt ON r.id = rt.resource_id
+WHERE (? IS NULL OR s.id IN (sqlc.slice('statuses'))) AND (? IS NULL OR rt.tag_id IN (sqlc.slice('tags'))) AND cr.collection_id = ?
+GROUP BY r.id
+HAVING @filter_tags IS NULL OR COUNT(DISTINCT rt.tag_id) = @tagsCount;
