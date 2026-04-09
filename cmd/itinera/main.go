@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/ellezio/itinera/internal/db"
 	"github.com/ellezio/itinera/internal/handler"
 	"github.com/ellezio/itinera/internal/resource"
+	"github.com/ellezio/itinera/web"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -25,18 +25,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ddl, _ := os.ReadFile("internal/db/schema/schema.sql")
+	ddl, err := db.GetSchema()
+	if err != nil {
+		panic(err)
+	}
 	if _, err := sqldb.Exec(string(ddl)); err != nil {
 		log.Fatal(err)
 	}
 
-	dml := `
-	INSERT OR IGNORE INTO statuses VALUES (1, 'pending', 'gray'), (2, 'inprogress', 'blue'), (3, 'done', 'green');
-	INSERT OR IGNORE INTO tags VALUES (1, 'go', 'blue'), (2, 'rust', 'orange'), (3, 'c', 'yellow');
-	`
-	if _, err := sqldb.Exec(dml); err != nil {
-		log.Fatal(err)
-	}
+	// dml := `
+	// INSERT OR IGNORE INTO statuses VALUES (1, 'pending', 'gray'), (2, 'inprogress', 'blue'), (3, 'done', 'green');
+	// INSERT OR IGNORE INTO tags VALUES (1, 'go', 'blue'), (2, 'rust', 'orange'), (3, 'c', 'yellow');
+	// `
+	// if _, err := sqldb.Exec(dml); err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	queries := db.New(sqldb)
 
@@ -44,7 +47,7 @@ func main() {
 	resourceHandler := handler.NewResourceHandler(resourceService)
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", web.StaticHandler()))
 	mux.Handle("GET /favicon.ico", http.NotFoundHandler())
 
 	mux.HandleFunc("GET /", resourceHandler.ResourcesPage)

@@ -307,6 +307,7 @@ templ SideNav(tags []Filter[db.Tag], statuses []Filter[db.Status], location stri
 				hx-get="/statuses/0/edit"
 				hx-target="#nav-list-statuses"
 				hx-swap="afterbegin"
+				hx-replace-url="false"
 			>+</button>
 		</div>
 		@SideNavStatusList(statuses, false)
@@ -317,6 +318,7 @@ templ SideNav(tags []Filter[db.Tag], statuses []Filter[db.Status], location stri
 				hx-get="/tags/0/edit"
 				hx-target="#nav-list-tags"
 				hx-swap="afterbegin"
+				hx-replace-url="false"
 			>+</button>
 		</div>
 		@SideNavTagList(tags, false)
@@ -379,7 +381,7 @@ templ ListItemEdit(id int64, text, kind, color string) {
 			hxBase = "/tags"
 		}
 
-		hxPost := ""
+		hxPost := hxBase
 		if !isNew {
 			hxPost = fmt.Sprintf("%s/%d/edit", hxBase, id)
 		}
