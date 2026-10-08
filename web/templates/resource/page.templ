@@ -647,12 +647,8 @@ templ ResourceTagPicker(tags []db.Tag, selectedTags []db.Tag) {
 				aria-labelledby="resource-form-tags-label resource-form-tags-summary"
 			>
 				<span id="resource-form-tags-summary" class="min-w-0">
-					<span data-tag-placeholder hidden?={ len(selectedTags) > 0 }>Select tags</span>
-					<span data-tag-selected class="flex flex-wrap gap-1" hidden?={ len(selectedTags) == 0 }>
-						for _, tag := range tags {
-							@components.Tag(tag, components.TagRemovable, !selected[tag.ID])
-						}
-					</span>
+					<span data-tag-placeholder>Select tags</span>
+					<span data-tag-selected class="flex flex-wrap gap-1" hidden></span>
 				</span>
 				<span aria-hidden="true" class="text-fg-4 shrink-0">▾</span>
 			</summary>

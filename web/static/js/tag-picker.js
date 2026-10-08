@@ -6,8 +6,12 @@ class ResourceTagPicker extends HTMLElement {
     const details = this.querySelector("details");
     const search = this.querySelector("[data-tag-search]");
     const options = Array.from(this.querySelectorAll("[data-tag-option]"));
-    const chips = Array.from(
-      this.querySelectorAll("[data-tag-selected] resource-tag"),
+    const selectedTags = this.querySelector("[data-tag-selected]");
+    const chips = new Map(
+      Array.from(selectedTags.children, (chip) => [
+        chip.getAttribute("tag-id"),
+        chip,
+      ]),
     );
 
     const filter = () => {
@@ -22,17 +26,26 @@ class ResourceTagPicker extends HTMLElement {
     };
 
     const updateSelection = () => {
-      const selected = new Set(
-        options
-          .map((option) => option.querySelector("input"))
-          .filter((input) => input.checked)
-          .map((input) => input.value),
-      );
-      for (const chip of chips) {
-        chip.hidden = !selected.has(chip.getAttribute("tag-id"));
+      for (const option of options) {
+        const input = option.querySelector("input");
+        if (input.checked && !chips.has(input.value)) {
+          const tag = option.querySelector("resource-tag");
+          const chip = document.createElement("resource-tag");
+          chip.tag = {
+            id: input.value,
+            name: tag.getAttribute("name"),
+            color: tag.getAttribute("color"),
+          };
+          chip.setAttribute("variant", "removable");
+          chips.set(input.value, chip);
+          selectedTags.append(chip);
+        } else if (!input.checked && chips.has(input.value)) {
+          chips.get(input.value).remove();
+          chips.delete(input.value);
+        }
       }
-      this.querySelector("[data-tag-selected]").hidden = selected.size === 0;
-      this.querySelector("[data-tag-placeholder]").hidden = selected.size > 0;
+      selectedTags.hidden = chips.size === 0;
+      this.querySelector("[data-tag-placeholder]").hidden = chips.size > 0;
     };
 
     details.addEventListener(
