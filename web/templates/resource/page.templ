@@ -576,32 +576,7 @@ templ ResourceInfoPane(rsrc resource.FullResource, tags []db.Tag, statuses []db.
 						}
 					</select>
 				</div>
-				<div>
-					<div class="text-bg-4 text-sm tracking-wider">TAGS</div>
-					<div class="flex flex-wrap gap-1 mt-1">
-						<select multiple id="resource-form-tags" name="tags" class="bg-bg-1 border border-orange-0 outline-none">
-							for _, t := range tags {
-								{{
-									isSelected := false
-									if edit {
-										for _, rt := range rsrc.Tags {
-											if rt.ID == t.ID {
-												isSelected = true
-												break
-											}
-										}
-									}
-								}}
-								<option
-									value={ t.ID }
-									if isSelected {
-										selected
-									}
-								>{ t.Name }</option>
-							}
-						</select>
-					</div>
-				</div>
+				@ResourceTagPicker(tags, rsrc.Tags)
 				<div class="flex mt-1.5 gap-1">
 					<input
 						type="submit"
@@ -654,6 +629,72 @@ templ ResourceInfoPane(rsrc resource.FullResource, tags []db.Tag, statuses []db.
 			</div>
 		}
 	</div>
+}
+
+templ ResourceTagPicker(tags []db.Tag, selectedTags []db.Tag) {
+	{{
+		selected := make(map[int64]bool, len(selectedTags))
+		for _, tag := range selectedTags {
+			selected[tag.ID] = true
+		}
+	}}
+	<resource-tag-picker class="block mt-2">
+		<div id="resource-form-tags-label" class="text-bg-4 text-sm tracking-wider">TAGS</div>
+		<details class="relative mt-1">
+			<summary
+				class="list-none flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-fg-1 bg-bg-0 border border-bg-3 rounded-md hover:border-bg-4 focus-visible:outline-2 focus-visible:outline-aqua-1 cursor-pointer [&::-webkit-details-marker]:hidden"
+				aria-labelledby="resource-form-tags-label resource-form-tags-summary"
+			>
+				<span id="resource-form-tags-summary" class="min-w-0">
+					<span data-tag-placeholder hidden?={ len(selectedTags) > 0 }>Select tags</span>
+					<span data-tag-selected class="flex flex-wrap gap-1" hidden?={ len(selectedTags) == 0 }>
+						for _, tag := range tags {
+							<span
+								data-tag-chip={ fmt.Sprint(tag.ID) }
+								hidden?={ !selected[tag.ID] }
+								class={ "inline-flex items-center gap-1 border border-" + tag.Color + "-1 text-" + tag.Color + "-1 bg-" + tag.Color + "-0/10 px-2 py-0.5 rounded-md text-xs" }
+							>
+								<span class="min-w-0 break-all">#{ tag.Name }</span>
+								<button
+									type="button"
+									data-tag-remove={ fmt.Sprint(tag.ID) }
+									aria-label={ "Remove tag " + tag.Name }
+									class="shrink-0 px-0.5 rounded-sm hover:bg-bg-2 focus-visible:outline-2 focus-visible:outline-aqua-1 cursor-pointer"
+								>×</button>
+							</span>
+						}
+					</span>
+				</span>
+				<span aria-hidden="true" class="text-fg-4 shrink-0">▾</span>
+			</summary>
+			<div class="absolute left-0 right-0 z-10 mt-1 p-2 bg-bg-0 border border-bg-3 rounded-md shadow-lg">
+				<input
+					type="search"
+					data-tag-search
+					aria-label="Search tags"
+					placeholder="Search tags…"
+					autocomplete="off"
+					class="w-full min-w-0 px-2 py-1.5 mb-2 text-sm text-fg-1 placeholder:text-fg-4 bg-bg-1 border border-bg-3 rounded-sm outline-none focus:border-aqua-1 [color-scheme:dark]"
+				/>
+				<div class="max-h-48 overflow-y-auto scrollbar flex flex-col gap-0.5" role="group" aria-labelledby="resource-form-tags-label">
+					for _, tag := range tags {
+						<label data-tag-option class="flex items-center gap-2 px-2 py-1.5 text-sm text-fg-1 rounded-sm hover:bg-bg-1 has-checked:bg-bg-2 cursor-pointer">
+							<input type="checkbox" name="tags" value={ tag.ID } checked?={ selected[tag.ID] } class="accent-aqua-1 shrink-0 [color-scheme:dark]"/>
+							<span aria-hidden="true" class={ "text-" + tag.Color + "-1" }>#</span>
+							<span data-tag-name class="break-all">{ tag.Name }</span>
+						</label>
+					}
+					<p data-tag-empty hidden?={ len(tags) > 0 } class="px-2 py-2 text-sm text-fg-4" role="status">
+						if len(tags) == 0 {
+							No tags available yet.
+						} else {
+							No matching tags.
+						}
+					</p>
+				</div>
+			</div>
+		</details>
+	</resource-tag-picker>
 }
 
 // TODO - remove the '%ss' as it works because resource and collection pular form is made by appending 's' which corresponds to endpoint path
