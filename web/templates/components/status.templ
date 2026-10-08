@@ -1,0 +1,20 @@
+package components
+
+import "github.com/ellezio/itinera/internal/db"
+
+type StatusVariant string
+
+const (
+	StatusPlain StatusVariant = "plain"
+	StatusBadge StatusVariant = "badge"
+	StatusText  StatusVariant = "text"
+)
+
+templ Status(status db.Status, variant StatusVariant) {
+	<resource-status
+		status-id={ status.ID }
+		name={ status.Name }
+		color={ status.Color }
+		variant={ string(variant) }
+	></resource-status>
+}

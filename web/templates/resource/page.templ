@@ -484,8 +484,7 @@ templ ListItem(id int64, text, mark, color string, selected bool) {
 		/>
 		<div class="flex items-center gap-2">
 			if mark == "" {
-				<div class={ "w-1.5 h-1.5 rounded-full shrink-0 bg-" + color + "-1" }></div>
-				<span class="text-sm">{ text } </span>
+				@components.Status(db.Status{ID: id, Name: text, Color: color}, components.StatusPlain)
 			} else {
 				@components.Tag(db.Tag{ID: id, Name: text, Color: color}, components.TagPlain, false)
 			}
@@ -521,7 +520,7 @@ templ Card(rsrc resource.FullResource, oob bool) {
 		<div class="h-36 bg-bg-1 border-t border-t-bg-3 px-3 py-2 flex flex-col gap-2">
 			<div class="flex">
 				<div class="flex-1 text-sm">{ rsrc.Resource.Title }</div>
-				<div class={ "bg-" + rsrc.Status.Color + "-0/10 text-" + rsrc.Status.Color + "-1 px-2 rounded-md text-[10px] h-fit py-0.5" }>{ rsrc.Status.Name }</div>
+				@components.Status(rsrc.Status, components.StatusBadge)
 			</div>
 			<div class="leading-none">
 				<a
@@ -564,19 +563,7 @@ templ ResourceInfoPane(rsrc resource.FullResource, tags []db.Tag, statuses []db.
 					<input name="title" value={ rsrc.Resource.Title }/>
 					<input name="source" value={ rsrc.Resource.Source }/>
 				</div>
-				<div>
-					<div class="text-bg-4 text-sm tracking-wider">STATUS</div>
-					<select id="resource-form-status" hx-trigger="change" name="status" class="bg-bg-1 border border-orange-0 outline-none">
-						for _, s := range statuses {
-							<option
-								value={ s.ID }
-								if edit && s.ID == rsrc.Status.ID {
-									selected
-								}
-							>{ s.Name }</option>
-						}
-					</select>
-				</div>
+				@ResourceStatusPicker(statuses, rsrc.Status.ID)
 				@ResourceTagPicker(tags, rsrc.Tags)
 				<div class="flex mt-1.5 gap-1">
 					<input
@@ -604,7 +591,9 @@ templ ResourceInfoPane(rsrc resource.FullResource, tags []db.Tag, statuses []db.
 			</div>
 			<div>
 				<div class="text-bg-4 text-sm tracking-wider">STATUS</div>
-				<div class={ "text-" + rsrc.Status.Color + "-1 rounded-md text-sm mt-1" }>{ rsrc.Status.Name }</div>
+				<div class="mt-1">
+					@components.Status(rsrc.Status, components.StatusText)
+				</div>
 			</div>
 			<div>
 				<div class="text-bg-4 text-sm tracking-wider">TAGS</div>
@@ -630,6 +619,61 @@ templ ResourceInfoPane(rsrc resource.FullResource, tags []db.Tag, statuses []db.
 			</div>
 		}
 	</div>
+}
+
+templ ResourceStatusPicker(statuses []db.Status, selectedID int64) {
+	{{
+		found := false
+		for _, status := range statuses {
+			if status.ID == selectedID {
+				found = true
+				break
+			}
+		}
+		if !found && len(statuses) > 0 {
+			selectedID = statuses[0].ID
+		}
+	}}
+	<resource-status-picker class="block mt-2">
+		<div id="resource-form-status-label" class="text-bg-4 text-sm tracking-wider">STATUS</div>
+		<details class="relative mt-1">
+			<summary
+				class="list-none flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-fg-1 bg-bg-0 border border-bg-3 rounded-md hover:border-bg-4 focus-visible:outline-2 focus-visible:outline-aqua-1 cursor-pointer [&::-webkit-details-marker]:hidden"
+				aria-labelledby="resource-form-status-label resource-form-status-summary"
+			>
+				<span id="resource-form-status-summary" class="min-w-0">
+					<span data-status-placeholder>Select status</span>
+					<span data-status-selected hidden></span>
+				</span>
+				<span aria-hidden="true" class="text-fg-4 shrink-0">▾</span>
+			</summary>
+			<div class="absolute left-0 right-0 z-10 mt-1 p-2 bg-bg-0 border border-bg-3 rounded-md shadow-lg">
+				<input
+					type="search"
+					data-status-search
+					aria-label="Search statuses"
+					placeholder="Search statuses…"
+					autocomplete="off"
+					class="w-full min-w-0 px-2 py-1.5 mb-2 text-sm text-fg-1 placeholder:text-fg-4 bg-bg-1 border border-bg-3 rounded-sm outline-none focus:border-aqua-1 [color-scheme:dark]"
+				/>
+				<div class="max-h-48 overflow-y-auto scrollbar flex flex-col gap-0.5" role="group" aria-labelledby="resource-form-status-label">
+					for _, status := range statuses {
+						<label data-status-option class="flex items-center gap-2 px-2 py-1.5 text-sm text-fg-1 rounded-sm hover:bg-bg-1 has-checked:bg-bg-2 cursor-pointer">
+							<input type="radio" name="status" value={ status.ID } checked?={ status.ID == selectedID } class="accent-aqua-1 shrink-0 [color-scheme:dark]"/>
+							@components.Status(status, components.StatusPlain)
+						</label>
+					}
+					<p data-status-empty hidden?={ len(statuses) > 0 } class="px-2 py-2 text-sm text-fg-4" role="status">
+						if len(statuses) == 0 {
+							No statuses available yet.
+						} else {
+							No matching statuses.
+						}
+					</p>
+				</div>
+			</div>
+		</details>
+	</resource-status-picker>
 }
 
 templ ResourceTagPicker(tags []db.Tag, selectedTags []db.Tag) {
