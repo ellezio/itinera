@@ -6,12 +6,14 @@ class ResourceTagPicker extends HTMLElement {
     const details = this.querySelector("details");
     const search = this.querySelector("[data-tag-search]");
     const options = Array.from(this.querySelectorAll("[data-tag-option]"));
-    const chips = Array.from(this.querySelectorAll("[data-tag-chip]"));
+    const chips = Array.from(
+      this.querySelectorAll("[data-tag-selected] resource-tag"),
+    );
 
     const filter = () => {
       const query = search.value.trim().toLocaleLowerCase();
       for (const option of options) {
-        const name = option.querySelector("[data-tag-name]").textContent;
+        const name = option.querySelector("resource-tag").getAttribute("name");
         option.hidden = !name.toLocaleLowerCase().includes(query);
       }
       this.querySelector("[data-tag-empty]").hidden = options.some(
@@ -27,7 +29,7 @@ class ResourceTagPicker extends HTMLElement {
           .map((input) => input.value),
       );
       for (const chip of chips) {
-        chip.hidden = !selected.has(chip.dataset.tagChip);
+        chip.hidden = !selected.has(chip.getAttribute("tag-id"));
       }
       this.querySelector("[data-tag-selected]").hidden = selected.size === 0;
       this.querySelector("[data-tag-placeholder]").hidden = selected.size > 0;
@@ -49,15 +51,12 @@ class ResourceTagPicker extends HTMLElement {
     search.addEventListener("input", filter, { signal });
     this.addEventListener("change", updateSelection, { signal });
     this.addEventListener(
-      "click",
+      "tag-remove",
       (event) => {
-        const remove = event.target.closest("[data-tag-remove]");
-        if (!remove) return;
-        event.preventDefault();
-        event.stopPropagation();
         const input = options
           .map((option) => option.querySelector("input"))
-          .find((input) => input.value === remove.dataset.tagRemove);
+          .find((input) => input.value === event.detail.id);
+        if (!input) return;
         input.checked = false;
         input.dispatchEvent(new Event("change", { bubbles: true }));
       },

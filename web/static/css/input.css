@@ -34,6 +34,33 @@
   --color-orange-1: #fe8019;
 }
 
+@layer components {
+  resource-tag {
+    @apply inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-0.5 border rounded-md text-xs;
+    color: var(--tag-color, var(--color-gray-1));
+    border-color: var(--tag-color, var(--color-gray-1));
+    background: color-mix(in oklab, var(--tag-background, var(--color-gray-0)) 10%, transparent);
+
+    .tag-label {
+      @apply min-w-0 break-all;
+    }
+
+    .tag-remove {
+      @apply shrink-0 px-0.5 rounded-sm hover:bg-bg-2 focus-visible:outline-2 focus-visible:outline-aqua-1 cursor-pointer;
+    }
+
+    &[variant="plain"] {
+      @apply p-0 border-0 bg-transparent text-sm;
+      color: inherit;
+
+      .tag-marker {
+        @apply mr-2 italic;
+        color: var(--tag-color, var(--color-gray-1));
+      }
+    }
+  }
+}
+
 @layer utilities {
   .scrollbar {
     scrollbar-width: thin;

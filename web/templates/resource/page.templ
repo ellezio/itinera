@@ -1,6 +1,7 @@
 package resource
 
 import "github.com/ellezio/itinera/web/templates/layouts"
+import "github.com/ellezio/itinera/web/templates/components"
 import "github.com/ellezio/itinera/internal/resource"
 import "github.com/ellezio/itinera/internal/db"
 import "fmt"
@@ -484,10 +485,10 @@ templ ListItem(id int64, text, mark, color string, selected bool) {
 		<div class="flex items-center gap-2">
 			if mark == "" {
 				<div class={ "w-1.5 h-1.5 rounded-full shrink-0 bg-" + color + "-1" }></div>
+				<span class="text-sm">{ text } </span>
 			} else {
-				<div class={ "italic text-" + color + "-1" }>{ mark }</div>
+				@components.Tag(db.Tag{ID: id, Name: text, Color: color}, components.TagPlain, false)
 			}
-			<span class="text-sm">{ text } </span>
 		</div>
 		<div class="flex items-center gap-2">
 			<button
@@ -532,7 +533,7 @@ templ Card(rsrc resource.FullResource, oob bool) {
 			</div>
 			<div class="flex flex-wrap gap-1 mt-1">
 				for _, tag := range rsrc.Tags {
-					<div class={ "border border-" + tag.Color + "-1 text-" + tag.Color + "-1 bg-" + tag.Color + "-0/10 px-2 rounded-md text-xs" }>#{ tag.Name }</div>
+					@components.Tag(tag, components.TagBadge, false)
 				}
 			</div>
 		</div>
@@ -609,7 +610,7 @@ templ ResourceInfoPane(rsrc resource.FullResource, tags []db.Tag, statuses []db.
 				<div class="text-bg-4 text-sm tracking-wider">TAGS</div>
 				<div class="flex flex-wrap gap-1 mt-1">
 					for _, tag := range rsrc.Tags {
-						<div class={ "border border-" + tag.Color + "-1 text-" + tag.Color + "-1 bg-" + tag.Color + "-0/10 px-2 rounded-md text-xs" }>#{ tag.Name }</div>
+						@components.Tag(tag, components.TagBadge, false)
 					}
 				</div>
 			</div>
@@ -649,19 +650,7 @@ templ ResourceTagPicker(tags []db.Tag, selectedTags []db.Tag) {
 					<span data-tag-placeholder hidden?={ len(selectedTags) > 0 }>Select tags</span>
 					<span data-tag-selected class="flex flex-wrap gap-1" hidden?={ len(selectedTags) == 0 }>
 						for _, tag := range tags {
-							<span
-								data-tag-chip={ fmt.Sprint(tag.ID) }
-								hidden?={ !selected[tag.ID] }
-								class={ "inline-flex items-center gap-1 border border-" + tag.Color + "-1 text-" + tag.Color + "-1 bg-" + tag.Color + "-0/10 px-2 py-0.5 rounded-md text-xs" }
-							>
-								<span class="min-w-0 break-all">#{ tag.Name }</span>
-								<button
-									type="button"
-									data-tag-remove={ fmt.Sprint(tag.ID) }
-									aria-label={ "Remove tag " + tag.Name }
-									class="shrink-0 px-0.5 rounded-sm hover:bg-bg-2 focus-visible:outline-2 focus-visible:outline-aqua-1 cursor-pointer"
-								>×</button>
-							</span>
+							@components.Tag(tag, components.TagRemovable, !selected[tag.ID])
 						}
 					</span>
 				</span>
@@ -680,8 +669,7 @@ templ ResourceTagPicker(tags []db.Tag, selectedTags []db.Tag) {
 					for _, tag := range tags {
 						<label data-tag-option class="flex items-center gap-2 px-2 py-1.5 text-sm text-fg-1 rounded-sm hover:bg-bg-1 has-checked:bg-bg-2 cursor-pointer">
 							<input type="checkbox" name="tags" value={ tag.ID } checked?={ selected[tag.ID] } class="accent-aqua-1 shrink-0 [color-scheme:dark]"/>
-							<span aria-hidden="true" class={ "text-" + tag.Color + "-1" }>#</span>
-							<span data-tag-name class="break-all">{ tag.Name }</span>
+							@components.Tag(tag, components.TagPlain, false)
 						</label>
 					}
 					<p data-tag-empty hidden?={ len(tags) > 0 } class="px-2 py-2 text-sm text-fg-4" role="status">

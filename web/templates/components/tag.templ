@@ -1,0 +1,21 @@
+package components
+
+import "github.com/ellezio/itinera/internal/db"
+
+type TagVariant string
+
+const (
+	TagPlain     TagVariant = "plain"
+	TagBadge     TagVariant = "badge"
+	TagRemovable TagVariant = "removable"
+)
+
+templ Tag(tag db.Tag, variant TagVariant, hidden bool) {
+	<resource-tag
+		tag-id={ tag.ID }
+		name={ tag.Name }
+		color={ tag.Color }
+		variant={ string(variant) }
+		hidden?={ hidden }
+	></resource-tag>
+}
