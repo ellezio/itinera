@@ -15,7 +15,7 @@ class ResourceStatus extends HTMLElement {
   connectedCallback() {
     if (!this.nameElement) {
       this.innerHTML = `
-        <span class="status-marker" aria-hidden="true"></span>
+        <span class="status-marker"></span>
         <span class="status-name"></span>
       `;
       this.nameElement = this.querySelector(".status-name");

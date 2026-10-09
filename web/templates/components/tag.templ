@@ -9,10 +9,11 @@ const (
 	TagBadge     TagVariant = "badge"
 	TagRemovable TagVariant = "removable"
 )
+const TagKeyAttribute = "tag-id"
 
 templ Tag(tag db.Tag, variant TagVariant, hidden bool) {
 	<resource-tag
-		tag-id={ tag.ID }
+		{ TagKeyAttribute }={ tag.ID }
 		name={ tag.Name }
 		color={ tag.Color }
 		variant={ string(variant) }

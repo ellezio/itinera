@@ -624,56 +624,33 @@ templ ResourceInfoPane(rsrc resource.FullResource, tags []db.Tag, statuses []db.
 templ ResourceStatusPicker(statuses []db.Status, selectedID int64) {
 	{{
 		found := false
-		for _, status := range statuses {
-			if status.ID == selectedID {
-				found = true
-				break
+		options := make([]components.PickerOption, len(statuses))
+		for i, status := range statuses {
+			options[i] = components.PickerOption{
+				ID:       status.ID,
+				Selected: status.ID == selectedID,
+				Option:   status,
 			}
+			found = found || options[i].Selected
 		}
-		if !found && len(statuses) > 0 {
-			selectedID = statuses[0].ID
+		if !found && len(options) > 0 {
+			options[0].Selected = true
 		}
 	}}
-	<resource-status-picker class="block mt-2">
-		<div id="resource-form-status-label" class="text-bg-4 text-sm tracking-wider">STATUS</div>
-		<details class="relative mt-1">
-			<summary
-				class="list-none flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-fg-1 bg-bg-0 border border-bg-3 rounded-md hover:border-bg-4 focus-visible:outline-2 focus-visible:outline-aqua-1 cursor-pointer [&::-webkit-details-marker]:hidden"
-				aria-labelledby="resource-form-status-label resource-form-status-summary"
-			>
-				<span id="resource-form-status-summary" class="min-w-0">
-					<span data-status-placeholder>Select status</span>
-					<span data-status-selected hidden></span>
-				</span>
-				<span aria-hidden="true" class="text-fg-4 shrink-0">▾</span>
-			</summary>
-			<div class="absolute left-0 right-0 z-10 mt-1 p-2 bg-bg-0 border border-bg-3 rounded-md shadow-lg">
-				<input
-					type="search"
-					data-status-search
-					aria-label="Search statuses"
-					placeholder="Search statuses…"
-					autocomplete="off"
-					class="w-full min-w-0 px-2 py-1.5 mb-2 text-sm text-fg-1 placeholder:text-fg-4 bg-bg-1 border border-bg-3 rounded-sm outline-none focus:border-aqua-1 [color-scheme:dark]"
-				/>
-				<div class="max-h-48 overflow-y-auto scrollbar flex flex-col gap-0.5" role="group" aria-labelledby="resource-form-status-label">
-					for _, status := range statuses {
-						<label data-status-option class="flex items-center gap-2 px-2 py-1.5 text-sm text-fg-1 rounded-sm hover:bg-bg-1 has-checked:bg-bg-2 cursor-pointer">
-							<input type="radio" name="status" value={ status.ID } checked?={ status.ID == selectedID } class="accent-aqua-1 shrink-0 [color-scheme:dark]"/>
-							@components.Status(status, components.StatusPlain)
-						</label>
-					}
-					<p data-status-empty hidden?={ len(statuses) > 0 } class="px-2 py-2 text-sm text-fg-4" role="status">
-						if len(statuses) == 0 {
-							No statuses available yet.
-						} else {
-							No matching statuses.
-						}
-					</p>
-				</div>
-			</div>
-		</details>
-	</resource-status-picker>
+	@components.Picker(components.PickerParams{
+		ID:               "resource-form-status",
+		Name:             "status",
+		Label:            "STATUS",
+		ItemsLabel:       "statuses",
+		ItemKeyAttribute: components.StatusKeyAttribute,
+		Placeholder:      "Select status",
+		SelectedVariant:  string(components.StatusBadge),
+		Options:          options,
+		OptionComponent: func(option any) templ.Component {
+			status := option.(db.Status)
+			return components.Status(db.Status{ID: status.ID, Name: status.Name, Color: status.Color}, components.StatusPlain)
+		},
+	})
 }
 
 templ ResourceTagPicker(tags []db.Tag, selectedTags []db.Tag) {
@@ -682,47 +659,30 @@ templ ResourceTagPicker(tags []db.Tag, selectedTags []db.Tag) {
 		for _, tag := range selectedTags {
 			selected[tag.ID] = true
 		}
+		options := make([]components.PickerOption, len(tags))
+		for i, tag := range tags {
+			options[i] = components.PickerOption{
+				ID:       tag.ID,
+				Selected: selected[tag.ID],
+				Option:   tag,
+			}
+		}
 	}}
-	<resource-tag-picker class="block mt-2">
-		<div id="resource-form-tags-label" class="text-bg-4 text-sm tracking-wider">TAGS</div>
-		<details class="relative mt-1">
-			<summary
-				class="list-none flex items-center justify-between gap-2 w-full px-3 py-2 text-sm text-fg-1 bg-bg-0 border border-bg-3 rounded-md hover:border-bg-4 focus-visible:outline-2 focus-visible:outline-aqua-1 cursor-pointer [&::-webkit-details-marker]:hidden"
-				aria-labelledby="resource-form-tags-label resource-form-tags-summary"
-			>
-				<span id="resource-form-tags-summary" class="min-w-0">
-					<span data-tag-placeholder>Select tags</span>
-					<span data-tag-selected class="flex flex-wrap gap-1" hidden></span>
-				</span>
-				<span aria-hidden="true" class="text-fg-4 shrink-0">▾</span>
-			</summary>
-			<div class="absolute left-0 right-0 z-10 mt-1 p-2 bg-bg-0 border border-bg-3 rounded-md shadow-lg">
-				<input
-					type="search"
-					data-tag-search
-					aria-label="Search tags"
-					placeholder="Search tags…"
-					autocomplete="off"
-					class="w-full min-w-0 px-2 py-1.5 mb-2 text-sm text-fg-1 placeholder:text-fg-4 bg-bg-1 border border-bg-3 rounded-sm outline-none focus:border-aqua-1 [color-scheme:dark]"
-				/>
-				<div class="max-h-48 overflow-y-auto scrollbar flex flex-col gap-0.5" role="group" aria-labelledby="resource-form-tags-label">
-					for _, tag := range tags {
-						<label data-tag-option class="flex items-center gap-2 px-2 py-1.5 text-sm text-fg-1 rounded-sm hover:bg-bg-1 has-checked:bg-bg-2 cursor-pointer">
-							<input type="checkbox" name="tags" value={ tag.ID } checked?={ selected[tag.ID] } class="accent-aqua-1 shrink-0 [color-scheme:dark]"/>
-							@components.Tag(tag, components.TagPlain, false)
-						</label>
-					}
-					<p data-tag-empty hidden?={ len(tags) > 0 } class="px-2 py-2 text-sm text-fg-4" role="status">
-						if len(tags) == 0 {
-							No tags available yet.
-						} else {
-							No matching tags.
-						}
-					</p>
-				</div>
-			</div>
-		</details>
-	</resource-tag-picker>
+	@components.Picker(components.PickerParams{
+		ID:               "resource-form-tags",
+		Name:             "tags",
+		Label:            "TAGS",
+		ItemsLabel:       "tags",
+		ItemKeyAttribute: components.TagKeyAttribute,
+		Placeholder:      "Select tags",
+		Multiple:         true,
+		SelectedVariant:  string(components.TagRemovable),
+		Options:          options,
+		OptionComponent: func(option any) templ.Component {
+			tag := option.(db.Tag)
+			return components.Tag(db.Tag{ID: tag.ID, Name: tag.Name, Color: tag.Color}, components.TagPlain, false)
+		},
+	})
 }
 
 // TODO - remove the '%ss' as it works because resource and collection pular form is made by appending 's' which corresponds to endpoint path

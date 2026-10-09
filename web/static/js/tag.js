@@ -15,7 +15,7 @@ class ResourceTag extends HTMLElement {
   connectedCallback() {
     if (!this.nameElement) {
       this.innerHTML = `
-        <span class="tag-label"><span class="tag-marker" aria-hidden="true">#</span><span class="tag-name"></span></span>
+        <span class="tag-label"><span class="tag-marker">#</span><span class="tag-name"></span></span>
         <button type="button" class="tag-remove" hidden>×</button>
       `;
       this.nameElement = this.querySelector(".tag-name");
@@ -24,7 +24,7 @@ class ResourceTag extends HTMLElement {
         event.preventDefault();
         event.stopPropagation();
         this.dispatchEvent(
-          new CustomEvent("tag-remove", {
+          new CustomEvent("remove", {
             bubbles: true,
             detail: this.tag,
           }),
@@ -59,7 +59,6 @@ class ResourceTag extends HTMLElement {
     this.style.setProperty("--tag-background", `var(--color-${themeColor}-0)`);
     this.nameElement.textContent = name;
     this.removeButton.hidden = this.getAttribute("variant") !== "removable";
-    this.removeButton.setAttribute("aria-label", `Remove tag ${name}`);
   }
 }
 

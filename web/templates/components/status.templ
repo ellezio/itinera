@@ -10,9 +10,11 @@ const (
 	StatusText  StatusVariant = "text"
 )
 
+const StatusKeyAttribute = "status-id"
+
 templ Status(status db.Status, variant StatusVariant) {
 	<resource-status
-		status-id={ status.ID }
+		{ StatusKeyAttribute }={ status.ID }
 		name={ status.Name }
 		color={ status.Color }
 		variant={ string(variant) }

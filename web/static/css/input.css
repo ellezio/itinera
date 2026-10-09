@@ -56,7 +56,11 @@
       @apply gap-1 px-2 py-0.5 border rounded-md text-xs;
       color: var(--status-color, var(--color-gray-1));
       border-color: var(--status-color, var(--color-gray-1));
-      background: color-mix(in oklab, var(--status-background, var(--color-gray-0)) 10%, transparent);
+      background: color-mix(
+        in oklab,
+        var(--status-background, var(--color-gray-0)) 10%,
+        transparent
+      );
     }
   }
 
@@ -64,7 +68,11 @@
     @apply inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-0.5 border rounded-md text-xs;
     color: var(--tag-color, var(--color-gray-1));
     border-color: var(--tag-color, var(--color-gray-1));
-    background: color-mix(in oklab, var(--tag-background, var(--color-gray-0)) 10%, transparent);
+    background: color-mix(
+      in oklab,
+      var(--tag-background, var(--color-gray-0)) 10%,
+      transparent
+    );
 
     .tag-label {
       @apply min-w-0 break-all;
